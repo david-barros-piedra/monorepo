@@ -1,0 +1,1 @@
+jstest --event /dev/input/js0 | cargo run  | mplayer - -demuxer rawvideo -rawvideo w=256:h=256:format=rgb24 -quiet
