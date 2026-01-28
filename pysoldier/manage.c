@@ -394,7 +394,7 @@ PlayerData *NewPlayerData(void)
 
     New = (PlayerData *)malloc(sizeof(PlayerData));
 
-    sprintf(New->Rec[0].name,name);
+    strcpy(New->Rec[0].name,"noname");
     New->Rec[0].score = 0;
     New->Rec[0].stage = 0;
     New->Rec[0].loop = 0;

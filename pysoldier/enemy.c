@@ -71,14 +71,14 @@ DelAtt EnemyAct1(ObjData *my)
     if (manage->Loop > 1)
     {
       /* shoot in loop 2 or later */
-	if (my->shotTime >= ShotTiming)
-	{
-          for (i =1; i< manage->Loop; i++)
+	if ( my->shotTime >= ShotTiming ) {
+          for (i =1; i< manage->Loop; i++) {
 	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
 	    my->shotTime = my->startTime;
-	}
-	else
+          }
+	} else {
 	    my->shotTime++;
+        }
     }
     
     my->image = 4;

@@ -168,8 +168,9 @@ int mainLoop(void)
           if (manage->Level < 0)
             manage->Level = 0;
 
-          if (manage->flag_maxlevel == True)
+          if (manage->flag_maxlevel == True){
             manage->Level = MaxLevel;
+          }
 
 	    ClearManage(manage);
 

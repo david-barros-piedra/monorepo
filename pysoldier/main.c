@@ -164,60 +164,7 @@ static void arginit(int argc, char *argv[])
 
     for (i=1; i<argc; i++)
     {
-	if ((strcmp(argv[i],"-display")==0) || (strcmp(argv[i],"-d")==0))
-	{
-	    if (i < argc-1)
-            {
-              strncpy(display,argv[i + 1],sizeof(display));
-              if (display[sizeof(display) - 1] != '\0')
-              {
-                fprintf(stderr, "warning: display name (arg %d) is too long, ",
-                        i + 1);
-                display[sizeof(display) - 1] = '\0';
-                fprintf(stderr, "truncated to %d chars\n",
-                        sizeof(display) - 1);
-              }
-              i++;
-            }
-            else
-            {
-              fprintf(stderr, "no display specified for -display (arg %d)\n",
-                      i);
-              exit(1);
-            }
-	}
-        else if ((strcmp(argv[i],"-wait")==0) || (strcmp(argv[i],"-w")==0))
-	{
-	    if (i < argc-1)
-	    {
-              if ((sscanf(argv[i+1], "%d", &a) == 1) && (a >= 1))
-              {
-                w_time = a;
-                if (w_time > WAIT)
-                  scoreOK = False;
-                i++;
-              }
-              else
-              {
-                fprintf(stderr, "wait (arg %d) must be a positive integer.\n",
-                        i + 1);
-                exit(1);
-              }
-            }
-            else
-            {
-              fprintf(stderr, "no wait specified for -wait (arg %d)\n", i);
-              exit(1);
-            }
-	}
-        else if ((strcmp(argv[i],"-cmap")==0) || (strcmp(argv[i],"-c")==0))
-        {
-          /* ignore */
-          ; 
-	}
-        else if ((strcmp(argv[i],"-score")==0) || (strcmp(argv[i],"-s")==0))
-	    putscore = True;
-        else if ((strcmp(argv[i],"-help")==0) || (strcmp(argv[i],"-h")==0))
+        if ((strcmp(argv[i],"-help")==0) || (strcmp(argv[i],"-h")==0))
             usage();
         else if (strcmp(argv[i],"-maxlevel")==0)
 	    maxlevel_temp = True;

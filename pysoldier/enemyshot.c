@@ -67,12 +67,8 @@ void ShotToPoint(int x1, int y1, int x2, int y2, int speed)
     int absx = abs(diffx);
     int absy = abs(diffy);
 
-    if (manage->EnemyNum >= manage->EnemyMax)
-        return;
-
-    if (speed <= 0)
-      speed = 1;
-    
+    if ( manage->EnemyNum >= manage->EnemyMax ){ return; }
+    if ( speed <= 0 ){ speed = 1; }
     for (i=1; i<manage->EnemyMax; i++)
     {
         if (manage->enemy[i]->Data.used == False)
@@ -136,8 +132,7 @@ DelAtt EnemyShotAct(ObjData *my)
 
 int RingToAngle(int x, int y, int angle, int speed)
 {
-  if (speed <= 0)
-    speed = 1;
+  if (speed <= 0) { speed = 1; }
   
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
@@ -162,16 +157,13 @@ int RingToAngle(int x, int y, int angle, int speed)
     return NewObj(MEnemy,EnemyShotAct,DeleteHit,DrawImage);
 }
 
-int RingToPoint(int x1, int y1, int x2, int y2, int speed)
-{
+int RingToPoint(int x1, int y1, int x2, int y2, int speed) {
     int diffx = x2 - x1;
     int diffy = y2 - y1;
     int absx = abs(diffx);
     int absy = abs(diffy);
 
-    if (speed <= 0)
-      speed = 1;
-    
+    if (speed <= 0) { speed = 1; }
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
@@ -261,22 +253,21 @@ DelAtt HomingAct(ObjData *my)
 
 int LaserShot(int x, int y, int speed)
 {
-  if (speed <= 0)
-    speed = 1;
-  
-    manage->New.Data.hitAtt = MEShot;
-    manage->New.Data.hitMask = MPlayer;
+  if (speed <= 0) { speed = 1; }
 
-    manage->New.Data.X = x;
-    manage->New.Data.Y = y;
-    manage->New.Data.EnemyAtt = NullDel;
-    manage->New.Data.Width = 7;
-    manage->New.Data.Height = 50;
-    manage->New.Data.Speed = speed;
+  manage->New.Data.hitAtt = MEShot;
+  manage->New.Data.hitMask = MPlayer;
 
-    manage->New.Grp.image = ELaserImage;
+  manage->New.Data.X = x;
+  manage->New.Data.Y = y;
+  manage->New.Data.EnemyAtt = NullDel;
+  manage->New.Data.Width = 7;
+  manage->New.Data.Height = 50;
+  manage->New.Data.Speed = speed;
 
-    return NewObj(MEShot,EnemyLaserAct,NullHit,DrawImage);
+  manage->New.Grp.image = ELaserImage;
+
+  return NewObj(MEShot,EnemyLaserAct,NullHit,DrawImage);
 }
 
 DelAtt EnemyLaserAct(ObjData *my)
@@ -293,26 +284,25 @@ DelAtt EnemyLaserAct(ObjData *my)
 
 int BoundShot(int x, int y, int ix, int iy, int bound)
 {
-  if ((ix == 0) && (iy == 0))
-    ix = 1;
+  if ( (ix == 0) && (iy == 0) ) { ix = 1; }
 
-    manage->New.Data.hitAtt = MEnemy;
-    manage->New.Data.hitMask = MPlayer | MPShot;
+  manage->New.Data.hitAtt = MEnemy;
+  manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = x;
-    manage->New.Data.Y = y;
-    manage->New.Data.EnemyAtt = NullDel;
-    manage->New.Data.Width = 28;
-    manage->New.Data.Height = 28;
-    manage->New.Data.inertX = ix;
-    manage->New.Data.inertY = iy;
+  manage->New.Data.X = x;
+  manage->New.Data.Y = y;
+  manage->New.Data.EnemyAtt = NullDel;
+  manage->New.Data.Width = 28;
+  manage->New.Data.Height = 28;
+  manage->New.Data.inertX = ix;
+  manage->New.Data.inertY = iy;
 
-    manage->New.Data.Cnt[0] = 0;
-    manage->New.Data.Cnt[1] = bound;
+  manage->New.Data.Cnt[0] = 0;
+  manage->New.Data.Cnt[1] = bound;
 
-    manage->New.Grp.image = EBoundImage;
+  manage->New.Grp.image = EBoundImage;
 
-    return NewObj(MEShot,BoundShotAct,NullHit,DrawImage);
+  return NewObj(MEShot,BoundShotAct,NullHit,DrawImage);
 }
 
 DelAtt BoundShotAct(ObjData *my)

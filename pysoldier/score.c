@@ -82,7 +82,7 @@ int ReadHiscore(PlayerData *p)
           name[j] = '?';
         }
 
-      strncpy(rec[i].name, name, sizeof(rec[i].name));
+      strcpy(rec[i].name, "noname");
 #ifdef DEBUG
       fprintf(stderr, "entry %d read: %d %d %d %s\n", i + 1, rec[i].score,
               rec[i].loop, rec[i].stage, rec[i].name);
