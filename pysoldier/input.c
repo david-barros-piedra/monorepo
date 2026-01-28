@@ -14,9 +14,6 @@
 #include <X11/Xlib.h>
 #endif  /* HAVE_LIBSDL */
 
-/*
-#include <X11/Xutil.h>
-*/
 
 #include "image.h"
 #include "xsoldier.h"
@@ -26,37 +23,15 @@
 #include "key.h"
 #include "manage.h"
 
-#ifdef JSTK
-#include "joystick.h"
-#endif /* JSTK */
 
 
 static void SetKeyMask(KeySym key);
 static void UnsetKeyMask(KeySym key);
 
-int input_init(void)
-{
+int input_init(void) {
   keymask = 0;
-#ifdef JSTK
-  /* initialize joystick */
-  initJS();
-#endif /* JSTK */
 
 #ifdef HAVE_LIBSDL
-  upKey    = SDL_GetKeyName(SDLK_UP);
-  downKey  = SDL_GetKeyName(SDLK_DOWN);
-  leftKey  = SDL_GetKeyName(SDLK_LEFT);
-  rightKey = SDL_GetKeyName(SDLK_RIGHT);
-  shotKey  = SDL_GetKeyName(SDLK_LSHIFT);
-  spdupKey = SDL_GetKeyName(SDLK_a);
-  spdwnKey = SDL_GetKeyName(SDLK_s);
-  pauseKey = SDL_GetKeyName(SDLK_p);
-  quitKey  = SDL_GetKeyName(SDLK_q);
-#ifdef DEBUG
-  weaponchangeKey = SDL_GetKeyName(SDLK_w);
-  clearenemyshotKey = SDL_GetKeyName(SDLK_c);
-#endif /* DEBUG */
-
 #else /* not HAVE_LIBSDL */
   upKey    = XKeysymToString(UpKey);
   downKey  = XKeysymToString(DownKey);
@@ -81,49 +56,6 @@ int input_init(void)
 int event_handle(void)
 {
 #ifdef HAVE_LIBSDL
-  while (SDL_PollEvent(&event) > 0)
-  {
-    if (event.type == SDL_QUIT)
-    { 
-      manage->program_should_quit = True;
-      return 0;
-    }
-    else if (event.type == SDL_VIDEOEXPOSE)
-    { 
-      redraw_window();
-    }
-    else if (event.type == SDL_ACTIVEEVENT)
-    {
-      if (event.active.gain == 1)
-        /* the mouse cursor entered the window */
-        ;
-      else
-      {
-        if (manage->player[0]->Data.used==False && player->Ships==0)
-          return 0;
-        else
-        {
-          keymask = 0;
-          keymask |= Pause;
-        }
-      }
-    }
-    else if (event.type == SDL_KEYDOWN)
-    {
-      if (manage->player[0]->Data.used==False && player->Ships==0)
-        /* key press after the game is over */
-        return 0;
-      else
-        SetKeyMask(event.key.keysym.sym);
-
-      if (keymask&Quit)
-        return 0;
-    }
-    else if (event.type == SDL_KEYUP)
-      UnsetKeyMask(event.key.keysym.sym);
-    
-  }
-  
 
 #else /* not HAVE_LIBSDL */
   while(XPending(dpy))
@@ -166,12 +98,6 @@ int event_handle(void)
 #endif /* not HAVE_LIBSDL */
 
 
-#ifdef JSTK
-  readJS();
-  if ((manage->player[0]->Data.used==False && player->Ships==0) && (joymask&Shot || joymask&SpeedUP))
-    /* key press after the game is over */
-    return 0; 
-#endif
   return 1;
 }
 
@@ -180,37 +106,8 @@ int event_handle(void)
  * -1 if the program quits
  * 0 otherwise
  */
-int event_handle_opening(void)
-{
+int event_handle_opening(void) {
 #ifdef HAVE_LIBSDL
-  while (SDL_PollEvent(&event) > 0)
-  {
-    if (event.type == SDL_QUIT)
-    { 
-      manage->program_should_quit = True;
-      return -1;
-    }
-    else if (event.type == SDL_VIDEOEXPOSE)
-    { 
-      ;
-    }
-    else if (event.type == SDL_ACTIVEEVENT)
-    {
-      if (event.active.gain == 1)
-        /* the mouse cursor entered the window */
-        ;
-      else
-        ;
-    }
-    else if (event.type == SDL_KEYDOWN)
-    {
-      if (event.key.keysym.sym == SDLK_SPACE)
-        return 1;
-      if (event.key.keysym.sym == SDLK_q)
-        return -1;
-    }
-  }
-
 #else /* not HAVE_LIBSDL */
   while(XPending(dpy))
   {
@@ -240,13 +137,6 @@ int event_handle_opening(void)
 
 #endif /* not HAVE_LIBSDL */
 
-#ifdef JSTK
-  readJS();
-  if ((joymask&Shot) || (joymask&SpeedUP))	
-  {
-    return 1;
-  }
-#endif
   return 0;
 }
 
@@ -254,32 +144,6 @@ int event_handle_opening(void)
 int event_handle_ending(void)
 {
 #ifdef HAVE_LIBSDL
-  while (SDL_PollEvent(&event) > 0)
-  {
-    if (event.type == SDL_QUIT)
-    {
-      manage->program_should_quit = True;
-      return 0;
-    }
-    else if (event.type == SDL_VIDEOEXPOSE)
-    { 
-      ;
-    }
-    else if (event.type == SDL_ACTIVEEVENT)
-    {
-      if (event.active.gain == 1)
-        /* the mouse cursor entered the window */
-        ;
-      else
-        ;
-    }
-    else if (event.type == SDL_KEYDOWN)
-    {
-      if (event.key.keysym.sym == SDLK_SPACE)
-        return 0;
-    }
-  }
-
 #else /* not HAVE_LIBSDL */
 
   while(XPending(dpy))
@@ -303,14 +167,6 @@ int event_handle_ending(void)
 
 #endif /* not HAVE_LIBSDL */
 
-	
-#ifdef JSTK
-  readJS();
-  if ((joymask&Shot) || (joymask&SpeedUP))	
-  {
-      return 0;
-  }
-#endif
   return 1;
 }
 
