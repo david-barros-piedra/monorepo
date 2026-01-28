@@ -1,0 +1,4 @@
+joystick.o: joystick.c /usr/include/stdc-predef.h config.h joystick.h
+/usr/include/stdc-predef.h:
+config.h:
+joystick.h:
