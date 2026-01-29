@@ -8,11 +8,7 @@
 
 #include <config.h>
 
-#ifdef HAVE_LIBSDL
-#include <SDL.h>
-#else /* HAVE_LIBSDL */
 #include <X11/Xlib.h>
-#endif  /* HAVE_LIBSDL */
 
 
 #include "image.h"
@@ -31,8 +27,6 @@ static void UnsetKeyMask(KeySym key);
 int input_init(void) {
   keymask = 0;
 
-#ifdef HAVE_LIBSDL
-#else /* not HAVE_LIBSDL */
   upKey    = XKeysymToString(UpKey);
   downKey  = XKeysymToString(DownKey);
   leftKey  = XKeysymToString(LeftKey);
@@ -46,9 +40,7 @@ int input_init(void) {
   weaponchangeKey = XKeysymToString(WeaponChangeKey);
   clearenemyshotKey = XKeysymToString(ClearEnemyShotKey);
 #endif /* DEBUG */
-
-#endif /* not HAVE_LIBSDL */
-  return 0;  
+  return 0;
 }
 
 
@@ -99,8 +91,6 @@ int event_handle(void) {
  * 0 otherwise
  */
 int event_handle_opening(void) {
-#ifdef HAVE_LIBSDL
-#else /* not HAVE_LIBSDL */
   while(XPending(dpy))
   {
     XNextEvent(dpy,&event);
@@ -127,7 +117,6 @@ int event_handle_opening(void) {
     }
   }
 
-#endif /* not HAVE_LIBSDL */
 
   return 0;
 }
@@ -135,8 +124,6 @@ int event_handle_opening(void) {
 /* return 0 if the ending is over, 1 if not */
 int event_handle_ending(void)
 {
-#ifdef HAVE_LIBSDL
-#else /* not HAVE_LIBSDL */
 
   while(XPending(dpy))
   {
@@ -157,7 +144,6 @@ int event_handle_ending(void)
     }
   }
 
-#endif /* not HAVE_LIBSDL */
 
   return 1;
 }

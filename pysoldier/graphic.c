@@ -1,7 +1,7 @@
 #include <config.h>
 
 #include <stdio.h>
-/* exit, atexit */
+/* exit  */
 #include <stdlib.h>
 /* isprint */
 #include <ctype.h>
@@ -39,7 +39,7 @@ static Image **Font5Image;
 static Image **Font6Image;
 
 
-int graphic_init(void) {
+int graphic_init( void ) {
   XColor blackTrue;
   XColor whiteTrue;
   XSizeHints sh;

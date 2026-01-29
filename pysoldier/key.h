@@ -13,27 +13,6 @@
 
 /* definitions of keys */
 
-#ifdef HAVE_LIBSDL
-#define KeySym SDLKey
-#define UpKey    SDLK_UP
-#define DownKey  SDLK_DOWN
-#define LeftKey  SDLK_LEFT
-#define RightKey SDLK_RIGHT
-
-#define ShotKey  SDLK_LSHIFT
-
-#define SpeedUPKey   SDLK_a
-#define SpeedDOWNKey SDLK_s
-
-#define PauseKey      SDLK_p
-#define QuitKey      SDLK_q
-
-#ifdef DEBUG
-#define WeaponChangeKey SDLK_w
-#define ClearEnemyShotKey SDLK_c
-#endif /* DEBUG */
-
-#else /* not HAVE_LIBSDL */
 #define UpKey    XK_Up
 #define DownKey  XK_Down
 #define LeftKey  XK_Left
@@ -52,7 +31,6 @@
 #define ClearEnemyShotKey XK_c
 #endif /* DEBUG */
 
-#endif /* not HAVE_LIBSDL */
 
 
 /* don't touch them */

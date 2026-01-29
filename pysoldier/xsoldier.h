@@ -26,9 +26,6 @@ typedef unsigned long Pixel;
 
 
 
-#ifndef WAIT
-#define WAIT 35000
-#endif /* WAIT */
 
 #define PIXMAP DATADIR "/games/xsoldier/"
 #define SCORE LOCALSTATEDIR "/games/xsoldier/"

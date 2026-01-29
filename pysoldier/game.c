@@ -91,9 +91,7 @@ int mainLoop(void) {
     
     /* add the player ship to the table */
     NewPlayer(FieldW/2,FieldH - 32);
-#ifndef HAVE_LIBSDL
     XFlush(dpy);
-#endif /* not HAVE_LIBSDL */
     int record_data_index = 0;
     while (1) {
         if ( waittime && ( signal_delivered == 0 ) ) { pause(); }

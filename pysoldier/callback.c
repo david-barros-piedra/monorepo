@@ -1,10 +1,3 @@
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: callback.c,v 1.15 2002/04/22 15:20:58 oohara Exp $ */
 
 #include <X11/Xlib.h>
 #include <X11/xpm.h>
@@ -15,7 +8,6 @@
 #include "extern.h"
 /* ShotToPoint */
 #include "enemyshot.h"
-/* sdl_draw_rect */
 #include "graphic.h"
 
 #include "callback.h"
@@ -100,37 +92,19 @@ DelAtt LargeDamageHit(ObjData *my, ObjData *your)
       my->showDamegeTime = 15;      
       return NoneDel;
     }
-    
 }
-
 
 /* display */
-void NullReal(ObjData *my, GrpData *grp)
-{
-    return;
-}
+void NullReal(ObjData *my, GrpData *grp){ return; }
 
 /* rectangle-drawing function for collision-detection debug */
-void DrawRec(ObjData *my, GrpData *grp)
-{
-#ifdef HAVE_LIBSDL
-  /* use double-standard here to keep the 10 pixel boundary */
-  sdl_draw_rect(my->X-my->HarfW + 10, my->Y-my->HarfH + 10,
-                my->Width, my->Height);
-
-#else /* not HAVE_LIBSDL */
-  /*
-    XFillRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height);
-  */
-    XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height);
-#endif /* not HAVE_LIBSDL */
-    return;
+void DrawRec(ObjData *my, GrpData *grp) {
+  XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height);
+  return;
 }
 
 /* display pixmap */
-void DrawImage(ObjData *my, GrpData *grp)
-{
-    PutImage(grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH);
-
+void DrawImage(ObjData *my, GrpData *grp) {
+    PutImage( grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH);
     return;
 }

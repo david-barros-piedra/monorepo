@@ -24,49 +24,8 @@
 #define EXTERN_DEF
 #include "extern.h"
 
-/* local functions */
 
-static void init(void);
-static void clean(void);
-static void sig_handle(int arg);
-
-/* file-global variables */
-static int w_time = -1;
-
-int main(int argc, char *argv[]) {
-  manage = NULL;
-  player = NewPlayerData();
-  init();
-  manage = NewManage(256,256);
-  manage->start_power = 0;
-    
-#ifndef HAVE_LIBSDL
-    XMapWindow(dpy,win);
-    XMapWindow(dpy,root);
-
-    XFlush(dpy);
-#endif /* not HAVE_LIBSDL */
-
-	keymask = 0;
-	player->Rec[0].score = 0;
-	player->Ships = 5;
-	player->Next = FIRST1UP;
-        
-
-	while (1) {
-	    keymask = 0;
-	    ResetManage(manage);
-	    if (mainLoop() == 0){ break;}
-	}
-
-
-    DeleteManage(manage);
-    free(player);
-    clean();
-    return 0;
-}
-
-
+static void sig_handle(int arg) { signal_delivered = 1; }
 
 static void init(void) {
     struct itimerval value, ovalue;
@@ -74,10 +33,8 @@ static void init(void) {
 
     /* set wait */
     signal_delivered = 1;
-    if (w_time < 0)
-	waittime = WAIT;
-    else
-	waittime = w_time;
+
+    waittime = 35000;
 
     memset(&sig_act, 0, sizeof(sig_act));
     sig_act.sa_handler = sig_handle;
@@ -91,11 +48,33 @@ static void init(void) {
     FieldW  = 500;
     FieldH  = 650;
 
-    /* you must call graphic_init() first because it calls SDL_Init */
     graphic_init();
     input_init();
     srand48(1234);
 }
 
-static void clean(void) { graphic_finish(); }
-static void sig_handle(int arg) { signal_delivered = 1; }
+int main(int argc, char *argv[]) {
+  manage = NULL;
+  player = NewPlayerData();
+  init();
+  manage = NewManage(256,256);
+  manage->start_power = 0;
+
+  XMapWindow(dpy,win);
+  XMapWindow(dpy,root);
+  XFlush(dpy);
+
+  keymask = 0;
+  player->Rec[0].score = 0;
+  player->Ships = 5;
+  player->Next = FIRST1UP;
+  while (1) {
+    keymask = 0;
+    ResetManage(manage);
+    if (mainLoop() == 0){ break;}
+  }
+  DeleteManage( manage );
+  free(player);
+  graphic_finish();
+  return 0;
+}

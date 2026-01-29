@@ -1,33 +1,18 @@
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: image.c,v 1.16 2002/05/06 04:13:30 oohara Exp $ */
-
-/* DEBUG is defined in config.h */
 #include <config.h>
 
 #include <stdio.h>
 #include <stdlib.h>
-#ifdef HAVE_LIBSDL
-#include <SDL.h>
-#include <SDL_image.h>
-#else /* not HAVE_LIBSDL */
+
 #include <X11/Xlib.h>
 #include <X11/xpm.h>
-#endif /* not HAVE_LIBSDL */
 
 #include "image.h"
 #include "xsoldier.h"
 #include "extern.h"
 
-#ifndef HAVE_LIBSDL
 static const char *XpmStatusToString(int status);
 
-static const char *XpmStatusToString(int status)
-{
+static const char *XpmStatusToString(int status){
     switch (status)
     {
       case XpmColorError:  return "XpmColorError";
@@ -39,23 +24,8 @@ static const char *XpmStatusToString(int status)
     }
     return "Unknwon status";
 }
-#endif /* not HAVE_LIBSDL */
 
-void ReadFileToImage(const char *filename, Image **img)
-{
-#ifdef HAVE_LIBSDL
-  SDL_Surface *temp;
-  temp = IMG_Load(filename);
-  if (temp == NULL)
-  {
-    fprintf(stderr, "ReadFileToImage: IMG_Load(%s) failed (%s)\n",
-            filename, SDL_GetError());
-    exit(1);
-  }
-
-  *img = temp;
-  
-#else /* not HAVE_LIBSDL */
+void ReadFileToImage(const char *filename, Image **img) {
     XpmAttributes att;
     const char *FuncName = "ReadFileToImage";
     int status;
@@ -92,113 +62,16 @@ void ReadFileToImage(const char *filename, Image **img)
 
     XpmFreeAttributes(&att);
 
-#endif /* not HAVE_LIBSDL */
     return;
 }
 
-void SplitImage(Image *img, Image ***imgs, int nsplit)
-{
+void SplitImage(Image *img, Image ***imgs, int nsplit){
   int width = 0;
   int height = 0;
   int i;
 #ifdef DEBUG
     const char *FuncName = "SplitImage";
 #endif
-
-#ifdef HAVE_LIBSDL
-  SDL_Rect temp;
-  SDL_Rect temp_dest;
-#endif /* HAVE_LIBSDL */
-
-#ifdef HAVE_LIBSDL
-  width = img->w;
-  height = img->h / nsplit;
-
-#ifdef DEBUG
-  if ((img->h) % nsplit != 0)
-  {
-    fprintf(stderr, "%s: [warning] img->height (%d)/nsplit (%d) isn't just!\n", FuncName, img->h, nsplit);
-    fflush(stderr);
-  }
-#endif /* DEBUG */
-
-  (*imgs) = (Image **)malloc(sizeof(Image*)*nsplit);
-  if (imgs == NULL)
-  {
-    perror("SplitImage: malloc failed");
-    exit(1);
-  }
-
-  for (i=0; i<nsplit; i++)
-  {
-    (*imgs)[i] = SDL_CreateRGBSurface(0, width, height,
-                                      dpy->format->BitsPerPixel,
-                                      dpy->format->Rmask,
-                                      dpy->format->Gmask,
-                                      dpy->format->Bmask,
-                                      dpy->format->Amask);
-    if ((*imgs)[i] == NULL)
-    {
-      fprintf(stderr, "SplitImage: SDL_CreateRGBSurface failed (%s)\n",
-              SDL_GetError());
-      exit(1);
-    }
-    if (dpy->format->BitsPerPixel == 8)
-      SDL_SetPalette((*imgs)[i], SDL_LOGPAL|SDL_PHYSPAL,
-                     dpy->format->palette->colors,
-                     0, dpy->format->palette->ncolors);
-    
-  }
-  
-  /* clear the window with white for debug display */
-  /*
-  SDL_FillRect(dpy, NULL, SDL_MapRGB(dpy->format, 255, 255, 255));
-  */
-
-  for (i=0; i<nsplit; i++)
-  {
-    int x, y;
-
-    x = 0;
-    y = height * i;
-
-    temp.x = x;
-    temp.y = y;
-    temp.w = width;
-    temp.h = height;
-    temp_dest.x = 0;
-    temp_dest.y = 0;
-    temp_dest.w = width;
-    temp_dest.h = height;
-    /*
-    SDL_UnlockSurface(img);
-    SDL_UnlockSurface((*imgs)[i]);
-    */
-    if (SDL_BlitSurface(img, &temp, (*imgs)[i], &temp_dest) != 0)
-    {
-      fprintf(stderr, "SplitImage: SDL_BlitSurface failed (%s)\n",
-              SDL_GetError());
-      exit(1);
-    }
-    
-    if (SDL_SetColorKey((*imgs)[i], SDL_SRCCOLORKEY,
-                        SDL_MapRGB(dpy->format, 0, 0, 0)) != 0)
-    {
-      fprintf(stderr, "SplitImage: SDL_SetColorKey failed (%s)\n",
-              SDL_GetError());
-      exit(1);
-    }
-    
-    /* debug display */
-    /*
-    temp_dest.x = 50 + width * i;
-    temp_dest.y = 100;
-    SDL_BlitSurface((*imgs)[i], NULL, dpy, &temp_dest);
-    SDL_Flip(dpy);
-    */
-  }
-  
-#else /* not HAVE_LIBSDL */
 
     GC  gc8, gc1;
 
@@ -246,68 +119,34 @@ void SplitImage(Image *img, Image ***imgs, int nsplit)
     XFreeGC(dpy,gc8);
     XFreeGC(dpy,gc1);
     XFlush(dpy);
-#endif /* not HAVE_LIBSDL */
     return;
 }
 
-void PutImage(Image *img, int x, int y)
-{
-#ifdef HAVE_LIBSDL
-  SDL_Rect temp;
-
-  /* use double-standard here to keep the 10 pixel boundary */
-  temp.x = x + 10;
-  temp.y = y + 10;
-  temp.w = img->w;
-  temp.h = img->h;
-
-  if (SDL_BlitSurface(img, NULL, dpy, &temp) != 0)
-  {
-    fprintf(stderr, "SplitImage: SDL_BlitSurface failed (%s)\n",
-            SDL_GetError());
-  }
-
-#else  /* not HAVE_LIBSDL */
-    XSetClipOrigin(dpy,img->maskgc,x,y);
-    XCopyArea(dpy,img->pixmap,WorkPixmap,img->maskgc,0,0,img->width,img->height,x,y);
-#endif /* not HAVE_LIBSDL */
+void PutImage(Image *img, int x, int y) {
+  XSetClipOrigin(dpy,img->maskgc,x,y);
+  XCopyArea(dpy,img->pixmap,WorkPixmap,img->maskgc,0,0,img->width,img->height,x,y);
 }
 
-void FreeImage(Image *img)
-{
-#ifdef HAVE_LIBSDL
-  SDL_FreeSurface(img);
-#else  /* not HAVE_LIBSDL */
-    XFreePixmap(dpy, img->pixmap);
-    XFreePixmap(dpy, img->mask);
-    XFreeGC(dpy, img->maskgc);
-    free(img);
-#endif /* not HAVE_LIBSDL */
-    return;
-}
-
-void FreeImages(Image **imgs, int nimg)
-{
-  while (nimg)
-    FreeImage(imgs[--nimg]);
-  free(imgs);
+void FreeImage(Image *img) {
+  XFreePixmap(dpy, img->pixmap);
+  XFreePixmap(dpy, img->mask);
+  XFreeGC(dpy, img->maskgc);
+  free(img);
   return;
 }
 
-Image **ImageInit(const char *filename, int split)
-{
-    Image *Digit;
-    Image **Digits;
+void FreeImages(Image **imgs, int nimg) {
+  while (nimg) { FreeImage( imgs[ --nimg ] ); }
+  free( imgs );
+  return;
+}
 
-    /* if we are using SDL, we don't need to malloc here because IMG_Load
-     * do it for us
-     */
-#ifndef HAVE_LIBSDL
-    Digit = (Image *)malloc(sizeof(Image));
-#endif /* not HAVE_LIBSDL */
-    ReadFileToImage(filename,&Digit);
-    SplitImage(Digit,&Digits,split);
-
-    FreeImage(Digit);
-    return Digits;
+Image **ImageInit(const char *filename, int split) {
+  Image *Digit;
+  Image **Digits;
+  Digit = (Image *)malloc(sizeof(Image));
+  ReadFileToImage(filename,&Digit);
+  SplitImage(Digit,&Digits,split);
+  FreeImage(Digit);
+  return Digits;
 }
