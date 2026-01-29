@@ -30,8 +30,6 @@
 #include "game.h"
 #include "ending.h"
 #include "player.h"
-/* DeleteAllStar */
-#include "star.h"
 #include "score.h"
 #include "wait.h"
 #include "graphic.h"

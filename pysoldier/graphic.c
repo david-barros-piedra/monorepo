@@ -26,7 +26,6 @@
 #include "image.h"
 #include "graphic.h"
 #include "xsoldier.h"
-#include "star.h"
 
 #include "extern.h"
 #if 0
@@ -298,7 +297,6 @@ int graphic_finish(void)
   FreeImages(Font5Image, 16);
   FreeImages(Font6Image, 16);
 
-  DeleteAllStar();
 #ifdef HAVE_LIBSDL
   SDL_QuitSubSystem(SDL_INIT_VIDEO);
 #else /* not HAVE_LIBSDL */

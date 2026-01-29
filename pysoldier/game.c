@@ -29,7 +29,6 @@
 #include "enemy.h"
 #include "extern.h"
 #include "key.h"
-#include "star.h"
 /* ClearEnemyShotManage, ClearManage, DelObj */
 #include "manage.h"
 #include "graphic.h"
@@ -174,9 +173,6 @@ int mainLoop(void) {
           }
 
 	    ClearManage(manage);
-
-	    ChangeStarParameter(StarPtn1,20);
-	    ChangeStarParameter(StarPtn2,25);
 	}
 
 	if (manage->Appear >= 100)
@@ -227,9 +223,6 @@ int mainLoop(void) {
         /* draw the window */
         clear_window();
 
-        /* pixmaps for the background */
-	DrawStar(StarPtn1);
-	DrawStar(StarPtn2);
 	/* pixmaps for objects */
 	for (obj=0,ocheck=0; (obj<manage->EnemyMax && ocheck<manage->EnemyNum); obj++)
 	{
@@ -301,11 +294,6 @@ int mainLoop(void) {
 	    }
             draw_string(230, 320, StageName[manage->Stage-1],
                         strlen(StageName[manage->Stage-1]));
-	}
-	if (manage->Appear == 0)
-	{
-	    ChangeStarParameter(StarPtn1,5);
-	    ChangeStarParameter(StarPtn2,10);
 	}
 
         redraw_window();

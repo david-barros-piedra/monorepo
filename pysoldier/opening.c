@@ -23,7 +23,6 @@
 #include "xsoldier.h"
 #include "extern.h"
 #include "key.h"
-#include "star.h"
 #include "version.h"
 
 #include "graphic.h"
@@ -37,8 +36,6 @@ int Opening(void)
     int count = 0;
     int status;
 
-    ChangeStarParameter(StarPtn1,5);
-    ChangeStarParameter(StarPtn2,10);
 
     Title = ImageInit(PIXMAP "/Title.xpm" GZ,1);
 
@@ -61,12 +58,6 @@ int Opening(void)
         }
 
         clear_window();
-        
-        /*
-	XFillRectangle(dpy,WorkPixmap,BackGC,0,0,FieldW,FieldH);
-        */
-	DrawStar(StarPtn1);
-	DrawStar(StarPtn2);
 
 	PutImage(Title[0],50,50);
 	draw_string(410, 210, "Ver. " VERSION, strlen("Ver. " VERSION));

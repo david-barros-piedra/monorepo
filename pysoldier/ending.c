@@ -23,7 +23,6 @@
 #include "xsoldier.h"
 #include "extern.h"
 #include "key.h"
-#include "star.h"
 
 #ifdef JSTK
 #include "joystick.h"
@@ -85,8 +84,6 @@ void Ending(void)
           return;
 
         clear_window();
-	DrawStar(StarPtn1);
-	DrawStar(StarPtn2);
 
 	for (i=0; i<stfnumber; i++)
 	{
