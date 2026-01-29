@@ -31,7 +31,6 @@
 #include "manage.h"
 #include "common.h"
 #include "callback.h"
-#include "score.h"
 #include "extern.h"
 
 #include "enemyshot.h"
@@ -399,7 +398,6 @@ PlayerData *NewPlayerData(void)
     New->Rec[0].stage = 0;
     New->Rec[0].loop = 0;
 
-    ReadHiscore(New);
 
     return New;
 }

@@ -25,7 +25,6 @@
 #include "manage.h"
 #include "game.h"
 #include "player.h"
-#include "score.h"
 #include "wait.h"
 #include "graphic.h"
 #include "input.h"
