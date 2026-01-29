@@ -164,43 +164,20 @@ int graphic_init(void) {
   return 0;
 }
 
-int clear_window(void)
-{
-#ifdef HAVE_LIBSDL
-  if (SDL_FillRect(dpy, NULL, SDL_MapRGB(dpy->format, 0, 0, 0)) != 0)
-  {
-    fprintf(stderr, "clear_window: SDL_FillRect failed (%s)\n",
-            SDL_GetError());
-    exit(1);
-  }
-  
-#else /* not HAVE_LIBSDL */
+int clear_window(void) {
   XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FieldW, FieldH);
-#endif /* not HAVE_LIBSDL */
   return 0;
 }
 
 
-int redraw_window(void)
-{
-#ifdef HAVE_LIBSDL
-  if (SDL_Flip(dpy) != 0)
-  {
-    fprintf(stderr, "redraw_window: SDL_Flip failed (%s)\n",
-            SDL_GetError());
-    exit(1);
-  }
-  
-#else /* not HAVE_LIBSDL */
+int redraw_window(void) {
   XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FieldW,FieldH,0,0);
   XFlush(dpy);
   XSync(dpy,False);
-#endif /* not HAVE_LIBSDL */
   return 0;
 }
 
-int graphic_finish(void)
-{
+int graphic_finish(void) {
   FreeImages(PlayerImage,6);
   FreeImages(PShot1Image,2);
   FreeImages(PShot2Image,2);
@@ -240,17 +217,12 @@ int graphic_finish(void)
   FreeImages(Font5Image, 16);
   FreeImages(Font6Image, 16);
 
-#ifdef HAVE_LIBSDL
-  SDL_QuitSubSystem(SDL_INIT_VIDEO);
-#else /* not HAVE_LIBSDL */
   XFreeGC(dpy, FontGC);
   XFreeGC(dpy, BackGC);
   XFreeGC(dpy, FillGC);
-  
   XAutoRepeatOn(dpy);
   XFlush(dpy);
   XCloseDisplay(dpy);
-#endif /* not HAVE_LIBSDL */
   return 0;
 }
 
@@ -574,108 +546,7 @@ int draw_char(int x, int y, int c)
     fprintf(stderr, "draw_char: unknown char found (\\x%x), ignoring", c);
     return -1;
   }
-  
   /* should not reach here */
   return -2;
 }
 
-#ifdef HAVE_LIBSDL
-/* return 0 on success, 1 on error */
-int sdl_draw_rect(int x_src, int y_src, int w, int h)
-{
-  int x;
-  int y;
-  int status = 0;
-  
-  /* sanity check */
-  if (w <= 0)
-    return 0;
-  if (h <= 0)
-    return 0;
-  
-  if (SDL_LockSurface(dpy) != 0)
-  {
-    fprintf(stderr, "DrawRec: cannot lock dpy (%s)\n" ,SDL_GetError());
-    return 1;
-  }
-
-  for (x = x_src; x <= x_src + w; x++)
-  {
-    if (sdl_draw_pixel(x, y_src) != 0)
-      status = 1;
-    if (sdl_draw_pixel(x, y_src + h) != 0)
-      status = 1;
-  }
-  for (y = y_src; y <= y_src + h; y++)
-  {
-    if (sdl_draw_pixel(x_src, y) != 0)
-      status = 1;
-    if (sdl_draw_pixel(x_src + w, y) != 0)
-      status = 1;
-  }
-  SDL_UnlockSurface(dpy);
-  return status;
-}
-
-/* you must lock dpy before calling this function and unlock dpy
- * after calling it
- * return 0 on success, 1 on error
- */
-static int sdl_draw_pixel(int x, int y)
-{
-  int bpp = 0;
-  Uint32 pixel;
-  Uint8 *p = NULL;
-
-  /* sanity check */
-  if ((x < 0) || (x >= FieldW + 20))
-    return 0;
-  if ((y < 0) || (y >= FieldH + 20))
-    return 0;
-  /* ugly hack leave window edges untouched */
-  if (manage != NULL)
-  {
-    if ((x < 10) || (x >= FieldW + 10))
-      return 0;
-    if ((y < 10) || (y >= FieldH + 10))
-      return 0;
-  }
-  
-
-  bpp = dpy->format->BytesPerPixel;
-  pixel = SDL_MapRGB(dpy->format, 255, 255, 255);
-  p = ((Uint8 *) dpy->pixels) + y * dpy->pitch + x * bpp;
-
-  switch(bpp)
-  {
-  case 1:
-    *p = pixel;
-    break;
-  case 2:
-    *(Uint16 *)p = pixel;
-    break;
-  case 3:
-    /* 2^8 = 256, 2^16 = 65536 */
-    if(SDL_BYTEORDER == SDL_BIG_ENDIAN)
-    {
-      p[0] = (pixel / 65536) & 0xff;
-      p[1] = (pixel / 256) & 0xff;
-      p[2] = pixel & 0xff;
-    }
-    else
-    {
-      p[0] = pixel & 0xff;
-      p[1] = (pixel / 256) & 0xff;
-      p[2] = (pixel / 65536) & 0xff;
-    }
-    break;
-  case 4:
-    *(Uint32 *)p = pixel;
-    break;
-  default:
-    fprintf(stderr, "sdl_draw_pixel: unknown bpp (%d)\n", bpp);
-    return 1;
-  }
-  return 0;
-}
-#endif /* HAVE_LIBSDL */
