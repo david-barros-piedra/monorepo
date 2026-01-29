@@ -9,13 +9,8 @@
 #if !defined _EXTERN_H_
 #define _EXTERN_H_
 
-#ifdef HAVE_LIBSDL
-#include <SDL.h>
-
-#else /* not HAVE_LIBSDL */
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
-#endif /* not HAVE_LIBSDL */
 
 #ifdef EXTERN_DEF
  #define EXTERN 
@@ -27,11 +22,6 @@
 EXTERN int signal_delivered;
 EXTERN int waittime;
 
-#ifdef HAVE_LIBSDL
-EXTERN SDL_Surface *dpy;
-EXTERN SDL_Event event;
-
-#else /* not HAVE_LIBSDL */
 
 /* for XWindow */
 EXTERN Display *dpy;
@@ -48,7 +38,6 @@ EXTERN GC       FillGC; /* GC for debugging rectangles */
 EXTERN XColor   black;
 EXTERN XColor   white;
 
-#endif /* not HAVE_LIBSDL */
 
 
 EXTERN int      keymask;
@@ -114,7 +103,5 @@ EXTERN Image **Boss6Image;
 EXTERN Image **Boss7Image;
 
 EXTERN Image **ItemImage;
-
-EXTERN char display[32];
 
 #endif

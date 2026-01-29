@@ -1,10 +1,3 @@
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: graphic.c,v 1.35 2002/05/06 04:28:44 oohara Exp $ */
 #include <config.h>
 
 #include <stdio.h>
@@ -13,14 +6,10 @@
 /* isprint */
 #include <ctype.h>
 
-#ifdef HAVE_LIBSDL
-#include <SDL.h>
-#else /* not HAVE_LIBSDL */
 #include <X11/Xlib.h>
 #include <X11/Xutil.h>
 #include <X11/keysym.h>
 #include <X11/xpm.h>
-#endif /* not HAVE_LIBSDL */
 
 /* Image */
 #include "image.h"
@@ -49,63 +38,18 @@ static Image **Font4Image;
 static Image **Font5Image;
 static Image **Font6Image;
 
-#ifdef HAVE_LIBSDL
-static int sdl_draw_pixel(int x, int y);
-#endif /* HAVE_LIBSDL */
 
-int graphic_init(void)
-{
-#ifdef HAVE_LIBSDL
-  SDL_Rect temp;
-#else /* not HAVE_LIBSDL */
+int graphic_init(void) {
   XColor blackTrue;
   XColor whiteTrue;
   XSizeHints sh;
-#endif /* not HAVE_LIBSDL */
   FieldW  = 500;
   FieldH  = 650;
 
-#ifdef HAVE_LIBSDL
-  if(SDL_Init(SDL_INIT_VIDEO) < 0 )
-  {
-    fprintf(stderr, "cannot initialize SDL (%s)\n", SDL_GetError());
-    exit(1);
-  }
-  if (atexit(SDL_Quit) != 0)
-  {
-    fprintf(stderr, "cannot register SDL_Quit to exit\n");
-    SDL_Quit();
-    exit(1);
-  }
 
-  /*
-  dpy = SDL_SetVideoMode(FieldW + 20, FieldH + 20, 0, SDL_FULLSCREEN);
-  */
-  dpy = SDL_SetVideoMode(FieldW + 20, FieldH + 20, 0, 0);
-  if (dpy == NULL)
-  {
-    fprintf(stderr, "SDL_SetVideoMode failed (%s)\n", SDL_GetError());
-    exit(1);
-  }
-
-  SDL_WM_SetCaption("xsoldier", "xsoldier");
-  /*
-  SDL_ShowCursor(SDL_DISABLE);
-  */
-  sdl_draw_rect(6, 6, FieldW + 5, FieldH + 5);
-  
-  temp.x = 10;
-  temp.y = 10;
-  temp.w = FieldW;
-  temp.h = FieldH;
-  SDL_SetClipRect(dpy, &temp);
-
-#else /* not HAVE_LIBSDL */
-
-  dpy = XOpenDisplay(display);
-  if (dpy == NULL)
-  {
-    fprintf(stderr,"graphic_init: [%s] can't open display.\n", display);
+  dpy = XOpenDisplay('\0');
+  if (dpy == NULL) {
+    fprintf(stderr,"graphic_init: can't open display.\n");
     exit(1);
   }
 
@@ -152,7 +96,6 @@ int graphic_init(void)
   XSetGraphicsExposures(dpy,FillGC,False);
   XSetForeground(dpy,FillGC,white.pixel);
 
-#endif  /* not HAVE_LIBSDL */
 
   PlayerImage = ImageInit(PIXMAP "/Player.xpm" GZ,6);
   PShot1Image  = ImageInit(PIXMAP "/PlayerShot1.xpm" GZ,2);

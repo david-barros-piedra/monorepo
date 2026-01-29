@@ -1,12 +1,3 @@
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: main.c,v 1.31 2006/09/16 09:20:54 oohara Exp $ */
-
-/* DEBUG and JSTK are defined in config.h */
 #include <config.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,7 +34,6 @@ static void sig_handle(int arg);
 static int w_time = -1;
 
 int main(int argc, char *argv[]) {
-  display[0] = '\0';
   manage = NULL;
   player = NewPlayerData();
   init();
