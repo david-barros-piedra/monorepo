@@ -66,12 +66,12 @@ int main(int argc, char *argv[]) {
 
   keymask = 0;
   player->Rec[0].score = 0;
-  player->Ships = 5;
+  player->Ships = 99;
   player->Next = FIRST1UP;
   while (1) {
     keymask = 0;
     ResetManage(manage);
-    if (mainLoop() == 0){ break;}
+    if (mainLoop() == 1){ break;}
   }
   DeleteManage( manage );
   free(player);
