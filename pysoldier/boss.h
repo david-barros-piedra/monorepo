@@ -49,7 +49,6 @@ extern DelAtt BossHit8(ObjData *my, ObjData *your);
 #include "callback.h"
 #include "enemy.h"
 #include "extern.h"
-#include "sin.h"
 
 /* local functions for the last boss */
 static DelAtt BossAct8_dead(ObjData *my);

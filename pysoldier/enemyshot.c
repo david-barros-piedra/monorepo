@@ -21,7 +21,6 @@
 #include "enemyshot.h"
 #include "callback.h"
 #include "extern.h"
-#include "sin.h"
 
 /* enemy shot */
 void ShotToAngle(int x, int y, int angle, int speed)

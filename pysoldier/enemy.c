@@ -23,7 +23,6 @@
 #include "callback.h"
 #include "enemy.h"
 #include "extern.h"
-#include "sin.h"
 
 
 

@@ -26,7 +26,6 @@
 #include "callback.h"
 #include "extern.h"
 #include "key.h"
-#include "sin.h"
 /* NewEnemy10 (power-up item) */
 #include "enemy.h"
 
