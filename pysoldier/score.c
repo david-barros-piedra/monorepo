@@ -257,7 +257,7 @@ static void fake_score_entry(Record *rec, int n, int score)
   rec[n].loop  = (10 - n) / 3;
   if (rec[n].loop < 1)
     rec[n].loop = 1;
-  rec[n].stage = rand() % 8 + 1;
+  rec[n].stage =  1;
   snprintf(rec[n].name, sizeof(rec[n].name) - 1, "(unknown)");
 }
 

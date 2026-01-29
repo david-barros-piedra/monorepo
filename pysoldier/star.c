@@ -49,49 +49,8 @@ void InitStarModule(unsigned int w, unsigned int h)
     return;
 }
 
-int CreateStar(const char *filename, int pattern, int speed, int nstar)
-{
-    Image *tmp;
-    Star  *S = &(star[cust]);
-    int i;
-
-    if (cust >= MAXSTAR)
-    {
-	fprintf(stderr, "CreateStar: can't create star!\n");
-	fflush(stderr);
-	return -1;
-    }
-
-    /* if we are using SDL, we don't need to malloc here because IMG_Load
-     * do it for us
-     */
-#ifndef HAVE_LIBSDL
-    tmp = (Image *)malloc(sizeof(Image));
-#endif /* not HAVE_LIBSDL */
-    ReadFileToImage(filename,&tmp);
-    SplitImage(tmp,&(S->image),pattern);
-    FreeImage(tmp);
-
-    S->pattern   = pattern;
-    S->speed     = speed;
-    S->nstar     = nstar;
-
-    S->point = (Point *)malloc(sizeof(Point) * nstar);
-#ifdef HAVE_LIBSDL
-    S->sW    = dW+(S->image[0])->w;
-    S->sH    = dH+(S->image[0])->h;
-#else /* not HAVE_LIBSDL */
-    S->sW    = dW+(S->image[0])->width;
-    S->sH    = dH+(S->image[0])->height;
-#endif /* not HAVE_LIBSDL */
-    for (i=0; i<nstar; i++)
-    {
-	S->point[i].cpat = rand() % pattern;
-	S->point[i].x    = rand() % S->sW;
-	S->point[i].y    = rand() % S->sH;
-    }
-    
-    return cust++;
+int CreateStar(const char *filename, int pattern, int speed, int nstar) {
+    return 0;
 }
 
 void DrawStar(int id)
@@ -121,7 +80,7 @@ void DrawStar(int id)
 	p->y += S->speed;
 	if (p->y < 0 || p->y > S->sH)
 	{
-	    p->x = rand() % S->sW;
+	    p->x = integerrng() % S->sW;
 	    p->y = (S->speed > 0)?0:S->sH;
 	}
     }

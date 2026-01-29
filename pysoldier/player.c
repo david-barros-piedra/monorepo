@@ -127,7 +127,7 @@ DelAtt PlayerAction(ObjData *my)
 	if (my->Cnt[3] == 30)
 	    return NullDel;
 
-	NewLargeBomb(my->X+rand()%20-10,my->Y+rand()%20-10);
+	NewLargeBomb(my->X+integerrng()%20-10,my->Y+integerrng()%20-10);
 	return NoneDel;
     }
 
@@ -544,6 +544,6 @@ void PlayerLosePower(void)
 
   for (; i >= 1; i--)
     /* the Y coordinate is intentionally subtracted */
-    NewEnemy10(manage->player[0]->Data.X + rand() % 50 - 25,
-               manage->player[0]->Data.Y - rand() % 20 - 10);
+    NewEnemy10(manage->player[0]->Data.X + integerrng() % 50 - 25,
+               manage->player[0]->Data.Y - integerrng() % 20 - 10);
 }

@@ -24,10 +24,7 @@ typedef unsigned long Pixel;
 #define PIXEL_ALREADY_TYPEDEFED
 #endif
 
-#ifndef HAVE_RAND
-# define srand(x) srand48((long)x)
-# define rand() lrand48()
-#endif
+
 
 #ifndef WAIT
 #define WAIT 35000

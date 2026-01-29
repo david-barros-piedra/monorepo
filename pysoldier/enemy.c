@@ -6,8 +6,7 @@
  */
 /* $Id: enemy.c,v 1.16 2002/04/29 03:40:19 oohara Exp $ */
 
-/* rand */
-#include <stdlib.h>
+
 /* abs */
 #include <stdlib.h>
 
@@ -25,6 +24,8 @@
 #include "enemy.h"
 #include "extern.h"
 #include "sin.h"
+
+
 
 /* definition of objects
  * - initialization function
@@ -54,7 +55,7 @@ int NewEnemy1(int x, int y)
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
     manage->New.Data.Angle = 0;
-    manage->New.Data.Speed = rand()%15 + 1;
+    manage->New.Data.Speed = integerrng()%15 + 1;
 
     manage->New.Data.Cnt[0] = 0;
 
@@ -110,7 +111,7 @@ DelAtt EnemyHit1(ObjData *my, ObjData *your)
 	if (manage->Loop > 2)
 	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
 
-	if (rand()%100 < 20)
+	if (integerrng()%100 < 20)
 	    NewEnemy10(my->X,my->Y);
         NewBomb(my->X,my->Y);
 
@@ -149,7 +150,7 @@ int NewEnemy2(int x, int y)
     manage->New.Data.Speed = 0;
     manage->New.Data.Cnt[0] = 0;
     /* range of x */
-    manage->New.Data.Cnt[1] = rand()%3 + 5;
+    manage->New.Data.Cnt[1] = integerrng()%3 + 5;
     if (x < FieldW/2)
 	manage->New.Data.Cnt[2] = 0;
     else
@@ -253,14 +254,14 @@ DelAtt EnemyAct3(ObjData *my)
             {
               my->Cnt[0] = 1;
               if (manage->Loop >2)
-                BoundShot(my->X, my->Y, rand()%30-15, rand()%30-15, 3);
+                BoundShot(my->X, my->Y, integerrng()%30-15, integerrng()%30-15, 3);
             }
             
 	    if (my->X > manage->player[0]->Data.X)
             {
               my->Cnt[0] = 2;
               if (manage->Loop >2)
-                BoundShot(my->X, my->Y, rand()%30-15, rand()%30-15, 3);
+                BoundShot(my->X, my->Y, integerrng()%30-15, integerrng()%30-15, 3);
             }
 	}
     }
@@ -376,12 +377,12 @@ int NewEnemy5(int x, int y)
     if (x > FieldW/2)
     {
 	manage->New.Data.X = FieldW;
-	manage->New.Data.Cnt[0] = - (rand()%10 + 15);
+	manage->New.Data.Cnt[0] = - (integerrng()%10 + 15);
     }
     else
     {
 	manage->New.Data.X = 0;
-	manage->New.Data.Cnt[0] = rand()%10 + 15;
+	manage->New.Data.Cnt[0] = integerrng()%10 + 15;
     }
 
     manage->New.Data.HP = 9;
@@ -421,15 +422,15 @@ DelAtt EnemyAct5(ObjData *my)
 
     if (my->Cnt[0]+my->inertX == 0)
     {
-	RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%4+2);
+	RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%4+2);
 	RingToAngle(my->X, my->Y, 45, 5);
 	RingToAngle(my->X, my->Y, 90, 5);
 	RingToAngle(my->X, my->Y, 135, 5);
-	RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%2+4);
+	RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%2+4);
 	if (manage->Loop > 1)
 	{
-	    RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%3+3);
-	    RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%4+4);
+	    RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%3+3);
+	    RingToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%4+4);
 	}
     }
 
@@ -463,11 +464,11 @@ int NewEnemy6(int x, int y)
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
     if (x > FieldW/2)
-	manage->New.Data.inertX = rand()%5 + 10;
+	manage->New.Data.inertX = integerrng()%5 + 10;
     else
-	manage->New.Data.inertX = rand()%5 - 15;
+	manage->New.Data.inertX = integerrng()%5 - 15;
 
-    manage->New.Data.inertY = rand()%10 + 5;
+    manage->New.Data.inertY = integerrng()%10 + 5;
 
     manage->New.Data.Cnt[0] = 0;
     manage->New.Data.Cnt[1] = 8;
@@ -482,7 +483,7 @@ DelAtt EnemyAct6(ObjData *my)
 {
     if (my->shotTime >= ShotTiming)
     {
-	ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%4+ manage->Loop * 7 -5);
+	ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%4+ manage->Loop * 7 -5);
 	my->shotTime = my->startTime;
     }
     else
@@ -618,7 +619,7 @@ int NewEnemy8(int x, int y)
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
     manage->New.Data.Angle = 0;
-    manage->New.Data.Speed = rand()%5 + 1;
+    manage->New.Data.Speed = integerrng()%5 + 1;
 
     manage->New.Grp.image = Enemy7Image;
 
@@ -669,10 +670,10 @@ int NewEnemy9(int x, int y)
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
     if (x > FieldW/2)
-	manage->New.Data.inertX = -(rand()%10+1);
+	manage->New.Data.inertX = -(integerrng()%10+1);
     else
-	manage->New.Data.inertX = rand()%10+1;
-    manage->New.Data.inertY = rand()%10 + 15;
+	manage->New.Data.inertX = integerrng()%10+1;
+    manage->New.Data.inertY = integerrng()%10 + 15;
 
     manage->New.Data.Cnt[0] = 0;
 
@@ -698,7 +699,7 @@ DelAtt EnemyAct9(ObjData *my)
     }
 
     if (my->inertY<0 && my->inertY%2)
-        ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%3+3);
+        ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%3+3);
 	
     my->inertY--;
 
@@ -742,15 +743,15 @@ int NewEnemy10(int x, int y)
     manage->New.Data.Width = 32;
     manage->New.Data.Height = 32;
 
-    manage->New.Data.inertY = -10 - rand() % 10;
+    manage->New.Data.inertY = -10 - integerrng() % 10;
 
     /* item counter */
     manage->New.Data.Cnt[0] = 0;
     /* time counter */
     manage->New.Data.Cnt[1] = 0;
     /* max speed */
-    manage->New.Data.Cnt[2] = rand()%6 + 1;
-    if (rand()%100 < 30)
+    manage->New.Data.Cnt[2] = integerrng()%6 + 1;
+    if (integerrng()%100 < 30)
     {
 	manage->New.Data.Cnt[3] = 1;
 	manage->New.Data.Cnt[0] = 1;

@@ -36,7 +36,7 @@
 #define HAVE_MEMSET 1
 
 /* Define to 1 if you have the `rand' function. */
-#define HAVE_RAND 1
+#define HAVE_RAND 0
 
 /* Define to 1 if you have the <stdint.h> header file. */
 #define HAVE_STDINT_H 1

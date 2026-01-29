@@ -53,13 +53,8 @@ int input_init(void) {
 
 
 /* return 0 if the game is over, 1 if not */
-int event_handle(void)
-{
-#ifdef HAVE_LIBSDL
-
-#else /* not HAVE_LIBSDL */
-  while(XPending(dpy))
-  {
+int event_handle(void) {
+  while( XPending( dpy ) ) {
     XNextEvent(dpy,&event);
     switch(event.type)
     {
@@ -95,9 +90,6 @@ int event_handle(void)
       break;
     }
   }
-#endif /* not HAVE_LIBSDL */
-
-
   return 1;
 }
 

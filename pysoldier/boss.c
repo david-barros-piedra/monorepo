@@ -115,7 +115,7 @@ DelAtt BossAct1(ObjData *my)
     if (my->Cnt[5] >= (25-manage->Loop*3))
     {
       for (i = 1; i< manage->Loop; i++)
-	    ShotToAngle(my->X,my->Y,rand()%180,10);
+	    ShotToAngle(my->X,my->Y,integerrng()%180,10);
       if (manage->Loop >1)
 	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,10);
 	LaserShot(my->X-30,my->Y,20);
@@ -157,12 +157,12 @@ DelAtt BossHit1(ObjData *my, ObjData *your)
     {
       player->Rec[0].score -= 1;
         NewBomb(my->X,my->Y);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
-        NewBomb(my->X+rand()%100-50,my->Y+rand()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
+        NewBomb(my->X+integerrng()%100-50,my->Y+integerrng()%100-50);
 
         my->showDamegeTime = 0;
         return my->EnemyAtt;
@@ -232,9 +232,9 @@ DelAtt BossAct2(ObjData *my)
     {
 	if (my->Cnt[5] >= 90- (manage->Loop)*10)
 	{
-	    ShotToPoint(my->X+40,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%3 + 5);
+	    ShotToPoint(my->X+40,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%3 + 5);
 	    ShotToPoint(my->X   ,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,8);
-	    ShotToPoint(my->X-40,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%5 + 3);
+	    ShotToPoint(my->X-40,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%5 + 3);
             my->Cnt[5] = 0;
 	}
 	else
@@ -372,7 +372,7 @@ DelAtt BossAct3(ObjData *my)
     if (my->Cnt[5] >= (25 - manage->Loop*2))
     {
       if (manage->Loop >1)
-	LaserShot(my->X- 120+ (rand()%5)*60,my->Y,25);
+	LaserShot(my->X- 120+ (integerrng()%5)*60,my->Y,25);
       if (manage->Loop >2)
 	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,18);
 	LaserShot(my->X-30,my->Y,25);
@@ -452,14 +452,14 @@ DelAtt BossAct4(ObjData *my)
 
     if (my->Cnt[5] >= (8-manage->Loop))
     {
-	LaserShot(my->X + rand()%600-300, my->Y, 11 + rand()%3  + manage->Loop*7);
-	LaserShot(my->X + rand()%600-300, my->Y, 6 + rand()%3 + manage->Loop*7);
-	LaserShot(my->X + rand()%600-300, my->Y, 1 + rand()%3 + manage->Loop*7);
-	LaserShot(my->X + rand()%600-300, my->Y, -4 + rand()%3 + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, 11 + integerrng()%3  + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, 6 + integerrng()%3 + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, 1 + integerrng()%3 + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, -4 + integerrng()%3 + manage->Loop*7);
         if (manage->Loop >2)
-	LaserShot(my->X + rand()%600-300, my->Y, 6 + rand()%3 + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, 6 + integerrng()%3 + manage->Loop*7);
         if (manage->Loop >1)
-	LaserShot(my->X + rand()%600-300, my->Y, 1 + rand()%3 + manage->Loop*7);
+	LaserShot(my->X + integerrng()%600-300, my->Y, 1 + integerrng()%3 + manage->Loop*7);
 	my->Cnt[5] = 0;
     }
     else
@@ -597,7 +597,7 @@ DelAtt BossAct5(ObjData *my)
         if (my->Cnt[5] % 2 == 0)
         {
           for (i =1; i <manage->Loop; i++)
-            ShotToAngle(my->X, my->Y, rand()%360, 3);
+            ShotToAngle(my->X, my->Y, integerrng()%360, 3);
         }
       }
 
@@ -671,9 +671,9 @@ DelAtt BossAct6(ObjData *my)
 	  case 0:
 	    if (manage->Loop > 2)
 	    {
-		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%5+3);
-		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%8+3);
-		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%3+5);
+		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%5+3);
+		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%8+3);
+		RingToPoint(my->X-128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%3+5);
 	    }
 	    RingToAngle(my->X-128,my->Y+32,80,8);
 	    RingToAngle(my->X-128,my->Y+32,90,8);
@@ -687,9 +687,9 @@ DelAtt BossAct6(ObjData *my)
 	  case 4:
 	    if (manage->Loop > 2)
 	    {
-		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%5+3);
-		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%8+3);
-		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%3+5);
+		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%5+3);
+		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%8+3);
+		RingToPoint(my->X+128,my->Y+32,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%3+5);
 	    }
 	    RingToAngle(my->X+128,my->Y+32,80,8);
 	    RingToAngle(my->X+128,my->Y+32,90,8);
@@ -702,7 +702,7 @@ DelAtt BossAct6(ObjData *my)
 	    HomingShot(my->X+90,my->Y-20,15,-10);
 	    break;
 	  case 8:
-            LaserShot(my->X-120 +rand()%240,my->Y,20);
+            LaserShot(my->X-120 +integerrng()%240,my->Y,20);
 	    LaserShot(my->X-120,my->Y,20);
 	    LaserShot(my->X+120,my->Y,20);
             if (manage->Loop == 1)
@@ -792,8 +792,8 @@ DelAtt BossAct6(ObjData *my)
           ShotToAngle(my->X +120, my->Y, 10, 25);
         }
 
-	my->X = rand()%FieldW;
-	my->Y = rand()%((FieldH -(FieldH%2))/2);
+	my->X = integerrng()%FieldW;
+	my->Y = integerrng()%((FieldH -(FieldH%2))/2);
     }
 
     return NoneDel;
@@ -819,10 +819,10 @@ int NewBoss7(void)
     manage->New.Data.Cnt[2] = 0; /* image counter */
 
     do {
-	manage->New.Data.Cnt[3] = rand()%30 - 15; /* x move */
+	manage->New.Data.Cnt[3] = integerrng()%30 - 15; /* x move */
     }while (abs(manage->New.Data.Cnt[3]) < 5);
     do {
-	manage->New.Data.Cnt[4] = rand()% 10 + 5; /* y move */
+	manage->New.Data.Cnt[4] = integerrng()% 10 + 5; /* y move */
     }while (abs(manage->New.Data.Cnt[4]) < 5);
 
     manage->New.Data.Cnt[5] = 0;  /* shot counter */
@@ -857,7 +857,7 @@ DelAtt BossAct7(ObjData *my)
 
       if (my->Cnt[5] % 30 == 0)
       {
-        BoundShot(my->X,my->Y,rand()%30-15,rand()%30-15, 5);
+        BoundShot(my->X,my->Y,integerrng()%30-15,integerrng()%30-15, 5);
       }
     }
     
@@ -921,7 +921,7 @@ int NewBoss8(void)
     manage->New.Data.Cnt[3] = 10; /* x move */
     manage->New.Data.Cnt[4] = 0; /* y move */
     manage->New.Data.Cnt[5] = 0;  /* shot counter */
-    manage->New.Data.Cnt[6] = rand()%4; /* mode */
+    manage->New.Data.Cnt[6] = integerrng()%4; /* mode */
     manage->New.Data.Cnt[7] = 0; /* mode counter */
     manage->New.Data.Cnt[8] = 0; /* after-death counter */
 
@@ -971,11 +971,11 @@ DelAtt BossAct8(ObjData *my)
     if ((my->Cnt[5]%2==0) && ((my->Cnt[6] ==0) || (my->Cnt[6] == 2)
                               || (my->Cnt[6] == 3)))
     {
-	RingToAngle(my->X, my->Y-60, rand()%50+70, rand()%15+5);
-	RingToAngle(my->X, my->Y-60, rand()%20+80, rand()%10+10);
+	RingToAngle(my->X, my->Y-60, integerrng()%50+70, integerrng()%15+5);
+	RingToAngle(my->X, my->Y-60, integerrng()%20+80, integerrng()%10+10);
         /*
 	if (manage->Loop > 2)
-	    RingToAngle(my->X, my->Y-60, rand()%20+80, rand()%5+15);
+	    RingToAngle(my->X, my->Y-60, integerrng()%20+80, integerrng()%5+15);
         */
     }
 
@@ -1051,8 +1051,8 @@ static DelAtt BossAct8_dead(ObjData *my)
   int i;
   int j;
   /* the boss is dead */
-  NewLargeBomb(my->X+rand()%230-115,my->Y+rand()%180-90);
-  NewLargeBomb(my->X+rand()%230-115,my->Y+rand()%180-90);
+  NewLargeBomb(my->X+integerrng()%230-115,my->Y+integerrng()%180-90);
+  NewLargeBomb(my->X+integerrng()%230-115,my->Y+integerrng()%180-90);
 
   my->Cnt[8]++;
   if ((player->Ships <= 0) && (manage->player[0]->Data.Cnt[3] != 0))
@@ -1086,7 +1086,7 @@ static DelAtt BossAct8_dead(ObjData *my)
     ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y, manage->Loop *5);
     if (manage->Loop >2)
     {
-      BoundShot(my->X, my->Y-60,rand()%20-10,rand()%4+10,4);
+      BoundShot(my->X, my->Y-60,integerrng()%20-10,integerrng()%4+10,4);
     }
   }
   if (my->Cnt[8] %5 == 0)
@@ -1094,7 +1094,7 @@ static DelAtt BossAct8_dead(ObjData *my)
     if (manage->Loop >1)
     {
       for (i=1; i< manage->Loop * 3; i++)
-        ShotToAngle(my->X,my->Y,rand()%360, manage->Loop *3);
+        ShotToAngle(my->X,my->Y,integerrng()%360, manage->Loop *3);
     }
   }
   
@@ -1116,10 +1116,10 @@ static DelAtt BossAct8_rand_shot(ObjData *my)
   {
     for (i = 1; i <= manage->Loop; i++)
     {
-      ShotToAngle(my->X-60, my->Y-60, rand()%50 + 70, rand()%5+5);
-      ShotToAngle(my->X+60, my->Y-60, rand()%50 + 70, rand()%5+5);
+      ShotToAngle(my->X-60, my->Y-60, integerrng()%50 + 70, integerrng()%5+5);
+      ShotToAngle(my->X+60, my->Y-60, integerrng()%50 + 70, integerrng()%5+5);
     }
-    ShotToPoint(my->X,my->Y-60,manage->player[0]->Data.X,manage->player[0]->Data.Y,rand()%5+3);
+    ShotToPoint(my->X,my->Y-60,manage->player[0]->Data.X,manage->player[0]->Data.Y,integerrng()%5+3);
   }
 
   BossAct8_next(my, 100);
@@ -1130,17 +1130,17 @@ static DelAtt BossAct8_ring_shot(ObjData *my)
 {
   if (my->Cnt[7]%2 == 0)
   {
-    RingToPoint(my->X-60, my->Y+10, manage->player[0]->Data.X,manage->player[0]->Data.Y, rand()%10 + 20);
-    RingToPoint(my->X+60, my->Y+10, manage->player[0]->Data.X,manage->player[0]->Data.Y, rand()%10 + 20);
+    RingToPoint(my->X-60, my->Y+10, manage->player[0]->Data.X,manage->player[0]->Data.Y, integerrng()%10 + 20);
+    RingToPoint(my->X+60, my->Y+10, manage->player[0]->Data.X,manage->player[0]->Data.Y, integerrng()%10 + 20);
     if (manage->Loop >1)
     {
-      RingToAngle(my->X, my->Y - 60, 90, rand()%10 + 20);
-      RingToAngle(my->X, my->Y - 60, 90, rand()%10 + 20);
+      RingToAngle(my->X, my->Y - 60, 90, integerrng()%10 + 20);
+      RingToAngle(my->X, my->Y - 60, 90, integerrng()%10 + 20);
     }
     if (manage->Loop >2)
     {
-      RingToAngle(my->X-60, my->Y - 60, 90, rand()%10 + 20);
-      RingToAngle(my->X+60, my->Y - 60, 90, rand()%10 + 20);
+      RingToAngle(my->X-60, my->Y - 60, 90, integerrng()%10 + 20);
+      RingToAngle(my->X+60, my->Y - 60, 90, integerrng()%10 + 20);
     }
   }
 
@@ -1153,16 +1153,16 @@ static DelAtt BossAct8_bound_shot(ObjData *my)
   if (manage->Loop <=2)
   {
     if (my->Cnt[7]  % 16 == 0)
-      BoundShot(my->X+60,my->Y-60,rand()%20-10,rand()%4+10,2);
+      BoundShot(my->X+60,my->Y-60,integerrng()%20-10,integerrng()%4+10,2);
     else if (my->Cnt[7]  % 16 == 8)
-      BoundShot(my->X-60,my->Y-60,rand()%20-10,rand()%4+10,2);
+      BoundShot(my->X-60,my->Y-60,integerrng()%20-10,integerrng()%4+10,2);
   }
   else
   {
     if (my->Cnt[7]  % 16 == 0)
-      BoundShot(my->X+60,my->Y-60, (rand()%20-10)*2, (rand()%4+10)*2, 2);
+      BoundShot(my->X+60,my->Y-60, (integerrng()%20-10)*2, (integerrng()%4+10)*2, 2);
     else if (my->Cnt[7]  % 16 == 8)
-      BoundShot(my->X-60,my->Y-60, (rand()%20-10)*2 ,(rand()%4+10)*2, 2);
+      BoundShot(my->X-60,my->Y-60, (integerrng()%20-10)*2 ,(integerrng()%4+10)*2, 2);
   }
 
   BossAct8_next(my, 100);
@@ -1221,9 +1221,9 @@ static DelAtt BossAct8_n_way_shot(ObjData *my)
   int speedtemp;
   if (my->Cnt[7] % 13 == 0)
   {
-    xtemp = rand()%FieldW;
-    ytemp = rand()%((FieldH -(FieldH%2))/2);
-    speedtemp = rand()%7 + 5;
+    xtemp = integerrng()%FieldW;
+    ytemp = integerrng()%((FieldH -(FieldH%2))/2);
+    speedtemp = integerrng()%7 + 5;
 
     if (manage->Loop == 1)
     {
@@ -1268,7 +1268,7 @@ static void BossAct8_next(ObjData *my, int span)
   {
     do
     {
-      modetemp = rand()%6;
+      modetemp = integerrng()%6;
     }while (modetemp == my->Cnt[6]);
     my->Cnt[6] = modetemp;
     my->Cnt[7] = 0;

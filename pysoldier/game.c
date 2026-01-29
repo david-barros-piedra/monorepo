@@ -35,9 +35,6 @@
 #include "graphic.h"
 #include "input.h"
 
-#ifdef JSTK
-#include "joystick.h"
-#endif
 
 /* DamageHit, LargeDamageHit
  * DrawRec if DEBUG
@@ -56,8 +53,9 @@ static int shoot_down_bonus(int percent, int loop, int stage);
 static int perfect_bonus(int loop, int stage);
 */
 
-int mainLoop(void)
-{
+#include "data.h"
+
+int mainLoop(void) {
     int obj; /* loop counter */
 
     int ocheck; /* counter for already checked objects */
@@ -97,14 +95,17 @@ int mainLoop(void)
 #ifndef HAVE_LIBSDL
     XFlush(dpy);
 #endif /* not HAVE_LIBSDL */
-    while (1)
-    {
-        if (waittime && (signal_delivered==0))
-	    pause();
+    int record_data_index = 0;
+    while (1) {
+        if ( waittime && ( signal_delivered == 0 ) ) { pause(); }
         signal_delivered = 0;
-
-        if (event_handle() == 0)
+        if ( event_handle() == 0 ) { return 0; }
+        keymask = record_data[record_data_index++];
+        if(record_data_index >= RECORD_DATA_SIZE){
+          printf("GOOD BYE!!!!!\n");
           return 0;
+        }
+        printf("%x\n",keymask);
 
 	if (keymask & Pause)
 	{
@@ -197,7 +198,7 @@ int mainLoop(void)
 	    else if (manage->ZakoApp == True)
 	    {
               /* normal enemy */
-		if (NewEnemy[rand()%(manage->Stage+1)]((rand()%FieldW)+1,0) != -1)
+		if (NewEnemy[integerrng()%(manage->Stage+1)]((integerrng()%FieldW)+1,0) != -1)
 		{
 		    manage->StageEnemy++;
 		}
@@ -532,9 +533,3 @@ static int shoot_down_bonus(int percent, int loop, int stage)
   return (30000 + stage * stage * 1000) * 5 / (105 - percent);
 }
 
-/*
-static int perfect_bonus(int loop, int stage)
-{
-  return 10000 * stage * loop;
-}
-*/

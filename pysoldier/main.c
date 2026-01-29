@@ -355,7 +355,7 @@ static void init(void)
     graphic_init();
     input_init();
 
-    srand((unsigned)time(NULL));
+    srand48(1234);
 }
 
 static void clean(void)

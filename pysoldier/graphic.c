@@ -188,9 +188,9 @@ int graphic_init(void)
   ItemImage = ImageInit(PIXMAP "/Item.xpm" GZ,4);
     
   /* initialize stars */
-  InitStarModule(FieldW,FieldH);
-  StarPtn1 = CreateStar(PIXMAP "/Star1.xpm" GZ,4,5,5);
-  StarPtn2 = CreateStar(PIXMAP "/Star2.xpm" GZ,4,10,10);
+  //InitStarModule(FieldW,FieldH);
+  //StarPtn1 = CreateStar(PIXMAP "/Star1.xpm" GZ,4,5,5);
+  //StarPtn2 = CreateStar(PIXMAP "/Star2.xpm" GZ,4,10,10);
 
   /* initialize font */
   /* explanation of font images

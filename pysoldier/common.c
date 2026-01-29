@@ -20,6 +20,12 @@
 #include "extern.h"
 #include "sin.h"
 
+int integerrng() {
+  printf("RANDDDDD!!!\n");
+  return lrand48(); 
+}
+
+
 void NewBomb(int x, int y)
 {
     int i;
