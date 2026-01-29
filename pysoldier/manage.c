@@ -1,30 +1,9 @@
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: manage.c,v 1.14 2006/09/16 09:21:03 oohara Exp $ */
 
 #include <config.h>
 
-/* getuid */
-#include <unistd.h>
 /* strncpy */
 #include <string.h>
-/* isprint */
-#include <ctype.h>
-
-#include <stdio.h>
-#include <stdlib.h>
 #include <malloc.h>
-/*
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-*/
-
-#include <pwd.h>
-#include <sys/types.h>
 
 #include "image.h"
 #include "xsoldier.h"
@@ -35,8 +14,7 @@
 
 #include "enemyshot.h"
 
-CharManage *NewManage(int playerMax, int enemyMax)
-{
+CharManage *NewManage(int playerMax, int enemyMax) {
     CharManage *New;
     int i;
 
@@ -99,13 +77,8 @@ CharManage *NewManage(int playerMax, int enemyMax)
     New->EnemyShot.Data.image = 0;
     New->EnemyShot.Data.Cnt[4] = 0; /* image counter */
     New->EnemyShot.Grp.image = EShotImage;
-#ifdef HAVE_LIBSDL
-    New->EnemyShot.Grp.Width = New->EnemyShot.Grp.image[0]->w;
-    New->EnemyShot.Grp.Height = New->EnemyShot.Grp.image[0]->h;
-#else /* not HAVE_LIBSDL */
     New->EnemyShot.Grp.Width = New->EnemyShot.Grp.image[0]->width;
     New->EnemyShot.Grp.Height = New->EnemyShot.Grp.image[0]->height;
-#endif /* not HAVE_LIBSDL */
     New->EnemyShot.Grp.HarfW = New->EnemyShot.Grp.Width/2;
     New->EnemyShot.Grp.HarfH = New->EnemyShot.Grp.Height/2;
 
@@ -121,13 +94,8 @@ CharManage *NewManage(int playerMax, int enemyMax)
     New->Bomb.Data.image = 0;
     New->Bomb.Data.Cnt[0] = 0;
     New->Bomb.Grp.image = BombImage;
-#ifdef HAVE_LIBSDL
-    New->Bomb.Grp.Width = New->Bomb.Grp.image[0]->w;
-    New->Bomb.Grp.Height = New->Bomb.Grp.image[0]->h;
-#else /* not HAVE_LIBSDL */
     New->Bomb.Grp.Width = New->Bomb.Grp.image[0]->width;
     New->Bomb.Grp.Height = New->Bomb.Grp.image[0]->height;
-#endif /* not HAVE_LIBSDL */
     New->Bomb.Grp.HarfW = New->Bomb.Grp.Width/2;
     New->Bomb.Grp.HarfH = New->Bomb.Grp.Height/2;
 
@@ -143,13 +111,8 @@ CharManage *NewManage(int playerMax, int enemyMax)
     New->LargeBomb.Data.image = 0;
     New->LargeBomb.Data.Cnt[0] = 0;
     New->LargeBomb.Grp.image = LargeBombImage;
-#ifdef HAVE_LIBSDL
-    New->LargeBomb.Grp.Width = New->LargeBomb.Grp.image[0]->w;
-    New->LargeBomb.Grp.Height = New->LargeBomb.Grp.image[0]->h;
-#else /* not HAVE_LIBSDL */
     New->LargeBomb.Grp.Width = New->LargeBomb.Grp.image[0]->width;
     New->LargeBomb.Grp.Height = New->LargeBomb.Grp.image[0]->height;
-#endif /* not HAVE_LIBSDL */
     New->LargeBomb.Grp.HarfW = New->LargeBomb.Grp.Width/2;
     New->LargeBomb.Grp.HarfH = New->LargeBomb.Grp.Height/2;
 
@@ -157,37 +120,21 @@ CharManage *NewManage(int playerMax, int enemyMax)
 }
 
 /* initialize manage at the beginning of stage */
-void ClearManage(CharManage *manage_temp)
-{
-    int i;
+void ClearManage(CharManage *manage_temp) {
+  manage -> Appear        = ( manage->Stage > MaxStage ) ? -100 : -50;
+  manage -> ZakoApp       = True;
+  manage -> BossApp       = False;
+  manage -> BossKill      = False;
+  manage -> showShootDown = 1;
+  manage -> StageEnemy    = 0;
+  manage -> StageShotDown = 0;
 
-    if (manage->Stage > MaxStage)
-      /* slower if you cleared the last stage */
-	manage->Appear = - 100;
-    else
-	manage->Appear = - 50;
-
-    manage->ZakoApp = True;
-    manage->BossApp = False;
-    manage->BossKill = False;
-
-    manage->showShootDown = 1;
-
-    manage->StageEnemy = 0;
-    manage->StageShotDown = 0;
-
-    /* you should not reset manage->BossTime here because it will be used
-     * to display the shoot down bonus
-     */
-
-    for (i=0; i<manage->EnemyMax; i++)
-    {
-	if (manage->enemy[i]->Data.used == True)
-	{
-	    NewLargeBomb(manage->enemy[i]->Data.X,manage->enemy[i]->Data.Y);
-	    DelObj(manage->enemy[i]);
-	}
+  for ( int i=0; i < manage->EnemyMax; i++ ) {
+    if (manage->enemy[i]->Data.used == True) {
+      NewLargeBomb(manage->enemy[i]->Data.X,manage->enemy[i]->Data.Y);
+      DelObj(manage->enemy[i]);
     }
+  }
 }
 
 /* initialize manage at the beginning of game */
@@ -249,9 +196,6 @@ void DeleteManage(CharManage *Del)
     free(Del->player);
     free(Del->enemy);
     free(Del);
-#ifdef DEBUG
-    fprintf(stderr,"DeleteManage: clean up\n");
-#endif
 }
 
 int NewObj(int mask,
@@ -275,24 +219,17 @@ int NewObj(int mask,
 		manage->player[i]->Action  = action;
 		manage->player[i]->Realize = realize;
 		manage->player[i]->Hit     = hit;
-		
 		manage->player[i]->Data.used = True;
 		manage->player[i]->Data.kill = False;
 		manage->player[i]->Data.HarfW = manage->player[i]->Data.Width / 2;
 		manage->player[i]->Data.HarfH = manage->player[i]->Data.Height / 2;
 
 		manage->player[i]->Data.image = 0;
-#ifdef HAVE_LIBSDL
-		manage->player[i]->Grp.Width = manage->player[i]->Grp.image[0]->w;
-		manage->player[i]->Grp.Height = manage->player[i]->Grp.image[0]->h;
-#else /* not HAVE_LIBSDL */
 		manage->player[i]->Grp.Width = manage->player[i]->Grp.image[0]->width;
 		manage->player[i]->Grp.Height = manage->player[i]->Grp.image[0]->height;
-#endif /* not HAVE_LIBSDL */
 		manage->player[i]->Grp.HarfW = manage->player[i]->Grp.Width /2;
 		manage->player[i]->Grp.HarfH = manage->player[i]->Grp.Height /2;
                 manage->player[i]->Data.notShootingTime = 5;
-		
 		manage->PlayerNum++;
 		return i;
 	    }
@@ -318,24 +255,15 @@ int NewObj(int mask,
 		manage->enemy[i]->Action  = action;
 		manage->enemy[i]->Realize = realize;
 		manage->enemy[i]->Hit     = hit;
-		
 		manage->enemy[i]->Data.used = True;
 		manage->enemy[i]->Data.kill = False;
 		manage->enemy[i]->Data.HarfW = manage->enemy[i]->Data.Width / 2;
 		manage->enemy[i]->Data.HarfH = manage->enemy[i]->Data.Height / 2;
-		
 		manage->enemy[i]->Data.startTime = manage->Level;
 		manage->enemy[i]->Data.shotTime = (ShotTiming + manage->Level) / 2;
-		
 		manage->enemy[i]->Data.image = 0;
-		
-#ifdef HAVE_LIBSDL
-		manage->enemy[i]->Grp.Width = manage->enemy[i]->Grp.image[0]->w;
-		manage->enemy[i]->Grp.Height = manage->enemy[i]->Grp.image[0]->h;
-#else /* not HAVE_LIBSDL */
 		manage->enemy[i]->Grp.Width = manage->enemy[i]->Grp.image[0]->width;
 		manage->enemy[i]->Grp.Height = manage->enemy[i]->Grp.image[0]->height;
-#endif /* not HAVE_LIBSDL */
 		manage->enemy[i]->Grp.HarfW = manage->enemy[i]->Grp.Width / 2;
 		manage->enemy[i]->Grp.HarfH = manage->enemy[i]->Grp.Height / 2;
 
@@ -362,52 +290,19 @@ void DelObj(CharObj *del)
     }
 }
 
-PlayerData *NewPlayerData(void)
-{
+PlayerData *NewPlayerData(void) {
     PlayerData *New;
-    struct passwd *pw;
-    char name[16];
-    int i;
-
-    /* we don't free() the memory allocated by getpwuid() because
-     * it is allocated statically */
-    if ((pw=getpwuid(getuid())) == NULL)
-        snprintf(name, sizeof(name) - 1, "%d",getuid());
-    else
-    {
-        strncpy(name,pw->pw_name,sizeof(name));
-        name[sizeof(name)-1]= '\0';
-   
-      /* check if the player name consists of only printable chars */
-      for (i = 0; (i <= sizeof(name) - 1) && (name[i] != '\0'); i++)
-        if (!isprint(name[i]))
-        {
-          fprintf(stderr, "warning: non-printable char found in your name, "
-                  "char %d (\\x%x), replacing it with ?\n",
-                  i, name[i]);
-          name[i] = '?';
-        }
-
-
-    }
-
     New = (PlayerData *)malloc(sizeof(PlayerData));
-
     strcpy(New->Rec[0].name,"noname");
     New->Rec[0].score = 0;
     New->Rec[0].stage = 0;
     New->Rec[0].loop = 0;
-
-
     return New;
 }
 
 /* clear all enemy shots */
-void ClearEnemyShotManage(CharManage *manage_temp)
-{
-    int i;
-    for (i=0; i<manage->EnemyMax; i++)
-    {
+void ClearEnemyShotManage(CharManage *manage_temp) {
+    for (int i=0; i<manage->EnemyMax; i++) {
       if (manage->enemy[i]->Data.used == True)
 	if ((manage->enemy[i]->Action == EnemyShotAct)
             || (manage->enemy[i]->Action == HomingAct)
