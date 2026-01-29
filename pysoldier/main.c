@@ -79,8 +79,7 @@ int main(int argc, char *argv[]) {
 
 
 
-static void init(void)
-{
+static void init(void) {
     struct itimerval value, ovalue;
     struct sigaction sig_act;
 
