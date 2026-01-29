@@ -8,9 +8,6 @@
 
 /* DEBUG and JSTK are defined in config.h */
 #include <config.h>
-/* time */
-#include <time.h>
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -26,9 +23,7 @@
 
 #include "xsoldier.h"
 #include "manage.h"
-#include "opening.h"
 #include "game.h"
-#include "ending.h"
 #include "player.h"
 #include "score.h"
 #include "wait.h"
@@ -48,10 +43,6 @@ static void sig_handle(int arg);
 /* file-global variables */
 static int w_time = -1;
 
-static int start_ship = 5;
-static int maxpower_temp = False;
-static int nopausemessage_temp = False;
-
 int main(int argc, char *argv[]) {
   display[0] = '\0';
   manage = NULL;
@@ -69,7 +60,7 @@ int main(int argc, char *argv[]) {
 
 	keymask = 0;
 	player->Rec[0].score = 0;
-	player->Ships = start_ship;
+	player->Ships = 5;
 	player->Next = FIRST1UP;
         
 
@@ -115,16 +106,8 @@ static void init(void)
     /* you must call graphic_init() first because it calls SDL_Init */
     graphic_init();
     input_init();
-
     srand48(1234);
 }
 
-static void clean(void)
-{
-    graphic_finish();
-}
-
-static void sig_handle(int arg)
-{
-    signal_delivered = 1;
-}
+static void clean(void) { graphic_finish(); }
+static void sig_handle(int arg) { signal_delivered = 1; }
