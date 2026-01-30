@@ -1,17 +1,22 @@
+
 #include <config.h>
+#include <ctype.h>
+#include <fcntl.h>
+#include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <unistd.h>
-#include <signal.h>
+#include <sys/stat.h>
 #include <sys/time.h>
 #include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
+#include <unistd.h>
 #include <X11/keysym.h>
+#include <X11/Xlib.h>
+#include <X11/xpm.h>
+#include <X11/Xutil.h>
 
+
+#include "data.h"
 #include "xsoldier.h"
 #include "manage.h"
 #include "game.h"
@@ -19,10 +24,14 @@
 #include "wait.h"
 #include "graphic.h"
 #include "input.h"
-
-/* define all "extern" here */
-#define EXTERN_DEF
 #include "extern.h"
+#include "image.h"
+#include "common.h"
+#include "enemyshot.h"
+#include "callback.h"
+#include "enemy.h"
+#include "key.h"
+
 
 static void init(void) {
   graphic_init();
@@ -55,39 +64,6 @@ int main(int argc, char *argv[]) {
   graphic_finish();
   return 0;
 }
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: game.c,v 1.34 2009/11/08 06:21:24 oohara Exp $ */
-
-/* DEBUG and JSTK are defined in config.h */
-#include <config.h>
-/* pause */
-#include <unistd.h>
-/* rand */
-#include <stdlib.h>
-/* strlen */
-#include <string.h>
-
-#include <stdio.h>
-/*
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
-*/
-
-#include "image.h"
-#include "xsoldier.h"
-#include "player.h"
-
-
-
-
-
-
 
 extern int NewBoss1(void);
 extern DelAtt BossAct1(ObjData *my);
@@ -115,26 +91,6 @@ extern int NewBoss8(void);
 extern DelAtt BossAct8(ObjData *my);
 extern DelAtt BossHit8(ObjData *my, ObjData *your);
 
-
-
-/* DEBUG is defined in config.h */
-#include <config.h>
-/* rand */
-#include <stdlib.h>
-
-/*
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-*/
-
-#include "image.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "common.h"
-#include "enemyshot.h"
-#include "callback.h"
-#include "enemy.h"
-#include "extern.h"
 
 /* local functions for the last boss */
 static DelAtt BossAct8_dead(ObjData *my);
@@ -1387,26 +1343,6 @@ static void BossAct8_next(ObjData *my, int span)
 }
 
 
-
-
-
-
-
-#include "enemy.h"
-#include "extern.h"
-#include "key.h"
-/* ClearEnemyShotManage, ClearManage, DelObj */
-#include "manage.h"
-#include "graphic.h"
-#include "input.h"
-
-
-/* DamageHit, LargeDamageHit
- * DrawRec if DEBUG
- */
-#include "callback.h"
-#include "game.h"
-
 /* local functions */
 static void DrawInfo(void);
 
@@ -1414,11 +1350,7 @@ static void do_actions(void);
 static void collision_detection(void);
 
 static int shoot_down_bonus(int percent, int loop, int stage);
-/*
-static int perfect_bonus(int loop, int stage);
-*/
 
-#include "data.h"
 
 int mainLoop( void ) {
     int obj; /* loop counter */
@@ -1642,56 +1574,20 @@ int mainLoop( void ) {
 }
 
 /* show score and other info */
-static void DrawInfo(void)
-{
+static void DrawInfo(void) {
     static char Score[64];
     static char Ships[16];
     static char Stage[16];
-#ifdef DEBUG
-    static char ObjectP[32];
-    static char ObjectE[32];
-    static char Loop[16];
-    static char Level[16];
-    static char Weapon[16];
-    static char Pow[16];
-    static char Speed[16];
-    static char Enemy[16];
-    static char EnemyKill[16];
-#endif
     static char EnemyHP[5];
     static char BossTime[16];
-    
     int i;
-
     sprintf(Score,"Score % 8d",player->Rec[0].score);
     sprintf(Stage,"Stage %2d",manage->Stage);
     sprintf(Ships,"Ships %3d",player->Ships);
-#ifdef DEBUG
-    sprintf(ObjectE,"Enemy Object %3d",manage->EnemyNum);
-    sprintf(ObjectP,"Player Object %3d",manage->PlayerNum);
-    sprintf(Loop,"Loop %2d",manage->Loop);
-    sprintf(Level,"Level %3d",manage->Level);
-    sprintf(Weapon,"Weapon %d",manage->player[0]->Data.Cnt[5]);
-    sprintf(Pow,"Pow %2d",manage->player[0]->Data.Cnt[6]);
-    sprintf(Speed,"Speed %2d",manage->player[0]->Data.Speed);
-    sprintf(Enemy,"Enemy %3d",manage->StageEnemy);
-    sprintf(EnemyKill,"EnemyKill %3d",manage->StageShotDown);
-#endif
 
     draw_string(10, 20, Score, strlen(Score));
     draw_string(430, 20, Stage, strlen(Stage));
     draw_string(430, 640, Ships, strlen(Ships));
-#ifdef DEBUG
-    draw_string(10, 40, ObjectE, strlen(ObjectE));
-    draw_string(10, 60, ObjectP, strlen(ObjectP));
-    draw_string(10, 80, Level, strlen(Level));
-    draw_string(10, 100, Enemy, strlen(Enemy));
-    draw_string(10, 120, EnemyKill, strlen(EnemyKill));
-    draw_string(430, 60, Loop, strlen(Loop));
-    draw_string(430, 580, Weapon, strlen(Weapon));
-    draw_string(430, 600, Pow, strlen(Pow));
-    draw_string(430, 620, Speed, strlen(Speed));
-#endif
     for (i = 0; i<manage->EnemyMax; i++)
       if (manage->enemy[i]->Data.used == True)
         if ((manage->enemy[i]->Hit == EnemyHit1)
@@ -1711,22 +1607,6 @@ static void DrawInfo(void)
       snprintf(BossTime, 16, "Time %4d",manage->BossTime);
       draw_string(430, 40, BossTime, strlen(BossTime));
     }
-
-#ifdef DEBUG
-    for (i = 0; i<manage->EnemyMax; i++)
-      if (manage->enemy[i]->Data.used == True)
-        /* DrawRec does not use arg 2, so NULL will be enough */
-        DrawRec(&(manage->enemy[i]->Data), NULL);
-    for (i = 0; i<manage->PlayerMax; i++)
-      if (manage->player[i]->Data.used == True)
-        /* DrawRec does not use arg 2, so NULL will be enough */
-        DrawRec(&(manage->player[i]->Data), NULL);
-        
-#endif /* DEBUG */
-
-
-
-    
 }
 
 static void do_actions(void)
@@ -1758,9 +1638,6 @@ static void do_actions(void)
         /* do nothing */
         break;
       case BossDel:
-#ifdef DEBUG
-        fprintf(stderr, "DelFlag == BossDel while processing Action: obj = %d\n", obj);
-#endif
         if ((DelFlag == BossDel) && (manage->BossTime <= 0))
           player->Rec[0].score -= manage->enemy[obj]->Data.Point;
         manage->BossKill = True;
@@ -1816,11 +1693,7 @@ static void collision_detection(void)
         case NoneDel:
           /* ignore it */
           break;
-          
         case BossDel:
-#ifdef DEBUG
-          fprintf(stderr, "DelFlag == BossDel while processing Hit: target = %d, obj = %d\n", target, obj);
-#endif
           if ((DelFlag == BossDel) && (manage->BossTime <= 0))
             player->Rec[0].score -= manage->enemy[target]->Data.Point;
           manage->BossKill = True;
@@ -1854,41 +1727,9 @@ static int shoot_down_bonus(int percent, int loop, int stage)
   }
   if (percent == 0)
     return 0;
-  
-  
   return (30000 + stage * stage * 1000) * 5 / (105 - percent);
 }
 
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: player.c,v 1.12 2011/08/12 14:33:57 oohara Exp $ */
-
-/* DEBUG is defined in config.h */
-#include <config.h>
-/* rand */
-#include <stdlib.h>
-
-/*
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
-#include <X11/xpm.h>
-*/
-
-#include "image.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "player.h"
-#include "common.h"
-#include "callback.h"
-#include "extern.h"
-#include "key.h"
-/* NewEnemy10 (power-up item) */
-#include "enemy.h"
 
 /* player object */
 void NewPlayer(int x, int y)
@@ -2378,8 +2219,7 @@ DelAtt PlayerShotHit3(ObjData *my, ObjData *your)
     return NoneDel;
 }
 
-void PlayerLosePower(void)
-{
+void PlayerLosePower(void) {
   int i = 0;
   
   if (manage->player[0]->Data.Cnt[6] > 30)
@@ -2407,29 +2247,8 @@ void PlayerLosePower(void)
     NewEnemy10(manage->player[0]->Data.X + integerrng() % 50 - 25,
                manage->player[0]->Data.Y - integerrng() % 20 - 10);
 }
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: enemyshot.c,v 1.7 2002/04/29 16:54:59 oohara Exp $ */
 
-#include <stdio.h>
-#include <stdlib.h>
 
-/*
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-*/
-
-#include "image.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "common.h"
-#include "enemyshot.h"
-#include "callback.h"
-#include "extern.h"
 
 /* enemy shot */
 void ShotToAngle(int x, int y, int angle, int speed)
@@ -2743,32 +2562,6 @@ DelAtt BoundShotAct(ObjData *my)
 
     return NoneDel;
 }
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: enemy.c,v 1.16 2002/04/29 03:40:19 oohara Exp $ */
-
-
-/* abs */
-#include <stdlib.h>
-
-/*
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-*/
-
-#include "image.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "common.h"
-#include "enemyshot.h"
-#include "callback.h"
-#include "enemy.h"
-#include "extern.h"
-
 
 
 /* definition of objects
@@ -3472,8 +3265,7 @@ DelAtt EnemyAct9(ObjData *my)
 }
 
 /* power-up item */
-int NewEnemy10(int x, int y)
-{
+int NewEnemy10(int x, int y) {
     manage->New.Data.hitAtt = MItem;
     manage->New.Data.hitMask = MPlayer;
 
@@ -3495,30 +3287,22 @@ int NewEnemy10(int x, int y)
     manage->New.Data.Cnt[1] = 0;
     /* max speed */
     manage->New.Data.Cnt[2] = integerrng()%6 + 1;
-    if (integerrng()%100 < 30)
-    {
+    if (integerrng()%100 < 30) {
 	manage->New.Data.Cnt[3] = 1;
 	manage->New.Data.Cnt[0] = 1;
-    }
-    else
-	manage->New.Data.Cnt[3] = 0;
+    } else { manage->New.Data.Cnt[3] = 0; }
 
     manage->New.Grp.image = ItemImage;
     return NewObj(MEnemy,EnemyAct10,NullDelHit,DrawImage);
 }
 
-DelAtt EnemyAct10(ObjData *my)
-{
+DelAtt EnemyAct10(ObjData *my) {
     my->Cnt[1]++;
-
-    if (my->inertY < my->Cnt[2])
-	my->inertY++;
+    if (my->inertY < my->Cnt[2]) { my->inertY++; }
     my->Y += my->inertY;
 
-    if (my->Cnt[3] == 1)
-    {
-	if (my->Cnt[1]%25 == 0)
-	{
+    if (my->Cnt[3] == 1) {
+	if (my->Cnt[1]%25 == 0) {
 	    if (my->Cnt[0] < 3)
 		my->Cnt[0]++;
 	    else
@@ -3535,20 +3319,6 @@ DelAtt EnemyAct10(ObjData *my)
 
     return NoneDel;
 }
-#include <config.h>
-
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-
-#include "image.h"
-#include "xsoldier.h"
-#include "extern.h"
-
-
-static const char *XpmStatusToString(int status);
 
 static const char *XpmStatusToString(int status){
     switch (status)
@@ -3567,9 +3337,6 @@ void ReadFileToImage(const char *filename, Image **img) {
     XpmAttributes att;
     const char *FuncName = "ReadFileToImage";
     int status;
-    /*
-    *img = (Image *)malloc(sizeof(Image));
-    */
     att.valuemask = XpmColormap;
     att.x_hotspot = 0U;
     att.y_hotspot = 0U;
@@ -3578,18 +3345,12 @@ void ReadFileToImage(const char *filename, Image **img) {
 
     /* I don't know why arg 3 of XpmReadFileToPixmap is not const */
     status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &((*img)->pixmap), &((*img)->mask), &att);
-    if (status != XpmSuccess)
-    {
+    if (status != XpmSuccess) {
 	fprintf(stderr, "%s: [file error] can not read %s (%s)\n",
 		FuncName, filename, XpmStatusToString(status));
 	fflush(stderr);
-	exit(1); 
+	exit(1);
     }
-#ifdef DEBUG
-    /* FIXME */
-    if ((*img)->mask == None)
-	fprintf(stderr, "%s: [format error] %s don't use None color\n", FuncName, filename);
-#endif
     (*img)->width  = att.width;
     (*img)->height = att.height;
 
@@ -3607,21 +3368,10 @@ void SplitImage(Image *img, Image ***imgs, int nsplit){
   int width = 0;
   int height = 0;
   int i;
-#ifdef DEBUG
-    const char *FuncName = "SplitImage";
-#endif
-
     GC  gc8, gc1;
 
     width  = img->width;
     height = (img->height) / nsplit;
-#ifdef DEBUG
-    if ((img->height) % nsplit != 0)
-    {
-	fprintf(stderr, "%s: [warning] img->height (%d)/nsplit (%d) isn't just!\n", FuncName, img->height, nsplit);
-	fflush(stderr);
-    }
-#endif
 
     gc8 = XCreateGC(dpy,img->pixmap, 0L,NULL);
     gc1 = XCreateGC(dpy,img->mask,   0L,NULL);
@@ -3631,11 +3381,9 @@ void SplitImage(Image *img, Image ***imgs, int nsplit){
 
     (*imgs) = (Image **)malloc(sizeof(Image*)*nsplit);
 
-    for (i=0; i<nsplit; i++)
-	(*imgs)[i] = (Image *)malloc(sizeof(Image));
+    for (i=0; i<nsplit; i++) { (*imgs)[i] = (Image *)malloc(sizeof(Image)); }
 
-    for (i=0; i<nsplit; i++)
-    {
+    for (i=0; i<nsplit; i++) {
 	int x, y;
 
 	x = 0;
@@ -3689,58 +3437,33 @@ Image **ImageInit(const char *filename, int split) {
   return Digits;
 }
 
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-
-#include "image.h"
-#include "xsoldier.h"
-#include "common.h"
-#include "extern.h"
-/* ShotToPoint */
-#include "enemyshot.h"
-#include "graphic.h"
-
-#include "callback.h"
 
 /* action */
 /* do nothing */
-DelAtt NullAct(ObjData *my)
-{
-    return NoneDel;
-}
-
+DelAtt NullAct(ObjData *my) { return NoneDel; }
 
 /* hit */
 /* nothing can hit me, I am immutable */
-DelAtt NullHit(ObjData *my, ObjData *your)
-{
-    return NoneDel;
-}
+DelAtt NullHit(ObjData *my, ObjData *your) { return NoneDel; }
 
 /* simply die */
-DelAtt NullDelHit(ObjData *my, ObjData *your)
-{
-    return NullDel;
-}
+DelAtt NullDelHit(ObjData *my, ObjData *your) { return NullDel; }
 
 /* die with explosion */
-DelAtt DeleteHit(ObjData *my, ObjData *your)
-{
+DelAtt DeleteHit(ObjData *my, ObjData *your) {
     NewBomb(my->X,my->Y);
     return my->EnemyAtt;
 }
 
 /* deal damage, explode if dead */
-DelAtt DamageHit(ObjData *my, ObjData *your)
-{
+DelAtt DamageHit(ObjData *my, ObjData *your) {
   int temp = your->Attack;
     if (my->HP < your->Attack)
       temp = my->HP;
 
     my->HP -= temp;
    player->Rec[0].score += temp;
-    if (my->HP <= 0)
-    {
+    if (my->HP <= 0) {
       player->Rec[0].score -= 1;
 	if (manage->Loop > 2)
 	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
@@ -3748,88 +3471,43 @@ DelAtt DamageHit(ObjData *my, ObjData *your)
 
         my->showDamegeTime = 0;
 	return my->EnemyAtt;
-    }
-    else
-    {
-      my->showDamegeTime = 15; 
+    } else {
+      my->showDamegeTime = 15;
       return NoneDel;
     }
-    
 }
 
 /* same above, but with big explosion */
-DelAtt LargeDamageHit(ObjData *my, ObjData *your)
-{
+DelAtt LargeDamageHit(ObjData *my, ObjData *your) {
   int temp = your->Attack;
-    if (my->HP < your->Attack)
-      temp = my->HP;
+  if (my->HP < your->Attack) { temp = my->HP; }
+  my->HP -= temp;
+  player->Rec[0].score += temp;
 
-    my->HP -= temp;
-   player->Rec[0].score += temp;
-
-    if (my->HP <= 0)
-    {
-      player->Rec[0].score -= 1;
-	if (manage->Loop > 2)
-	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
-	NewLargeBomb(my->X,my->Y);
-
-        my->showDamegeTime = 0;
-	return my->EnemyAtt;
-    }
-    else
-    {
-      my->showDamegeTime = 15;      
-      return NoneDel;
-    }
+  if (my->HP <= 0) {
+    player->Rec[0].score -= 1;
+    if (manage->Loop > 2) { ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5); }
+    NewLargeBomb(my->X,my->Y);
+    my->showDamegeTime = 0;
+    return my->EnemyAtt;
+  } else {
+    my->showDamegeTime = 15;
+    return NoneDel;
+  }
 }
 
-/* display */
 void NullReal(ObjData *my, GrpData *grp){ return; }
-
-/* rectangle-drawing function for collision-detection debug */
-void DrawRec(ObjData *my, GrpData *grp) {
-  XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height);
-  return;
-}
-
-/* display pixmap */
-void DrawImage(ObjData *my, GrpData *grp) {
-    PutImage( grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH);
-    return;
-}
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: common.c,v 1.4 2002/04/29 03:38:41 oohara Exp $ */
-
-/*
-#include <X11/Xlib.h>
-#include <X11/xpm.h>
-*/
-/* abs */
-#include <stdlib.h>
-
-#include "image.h"
-#include "xsoldier.h"
-#include "common.h"
-#include "callback.h"
-#include "extern.h"
+void DrawRec(ObjData *my, GrpData *grp) { XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height); }
+void DrawImage(ObjData *my, GrpData *grp) { PutImage( grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH); }
 
 int integerrng() { return lrand48(); }
 
 void NewBomb(int x, int y) {
-    int i;
-
     if (manage->EnemyNum >= manage->EnemyMax)
         return;
 
-    for (i=1; i<manage->EnemyMax; i++) {
-        if (manage->enemy[i]->Data.used == False)
-	{
+    for (int i=1; i<manage->EnemyMax; i++) {
+        if (manage->enemy[i]->Data.used == False){
 	    manage->Bomb.Data.X = x;
 	    manage->Bomb.Data.Y = y;
 
@@ -3845,17 +3523,13 @@ void NewBomb(int x, int y) {
     }
 }
 
-void NewLargeBomb(int x, int y)
-{
-    int i;
+void NewLargeBomb(int x, int y) {
 
     if (manage->EnemyNum >= manage->EnemyMax)
         return;
 
-    for (i=1; i<manage->EnemyMax; i++)
-    {
-        if (manage->enemy[i]->Data.used == False)
-	{
+    for (int i=1; i<manage->EnemyMax; i++) {
+        if (manage->enemy[i]->Data.used == False) {
 	    manage->LargeBomb.Data.X = x;
 	    manage->LargeBomb.Data.Y = y;
 
@@ -3871,17 +3545,14 @@ void NewLargeBomb(int x, int y)
     }
 }
 
-DelAtt BombAct(ObjData *my)
-{
+DelAtt BombAct(ObjData *my) {
     my->image = my->Cnt[0];
     my->Cnt[0]++;
-    if (my->Cnt[0] > 5)
-	return NullDel;
+    if (my->Cnt[0] > 5) { return NullDel; }
     return NoneDel;
 }
 
-int GetDirection(int mx, int my, int sx, int sy)
-{
+int GetDirection(int mx, int my, int sx, int sy) {
     static double hi;
     static int uw;
     static int uh;
@@ -3897,20 +3568,9 @@ int GetDirection(int mx, int my, int sx, int sy)
     if (!uh) return (uw>0)?2:6;
 
     hi = (double)uh/uw;
-    if (hi < 0.42)
-        return (w > 0) ? 2: 6;
-    else if (hi > 2.42)
-        return (h > 0) ? 4: 0;
-    else
-    {
-        return (w>0)?((h>0)?3:1):((h>0)?5:7);
-        /***
-        if (w > 0 && h > 0) return 3;
-        if (w > 0 && h < 0) return 1;
-        if (w < 0 && h > 0) return 5;
-        if (w < 0 && h < 0) return 7;
-        ***/
-    }
+    if (hi < 0.42){ return (w > 0) ? 2: 6; }
+    else if (hi > 2.42) { return (h > 0) ? 4: 0; }
+    else { return (w>0)?((h>0)?3:1):((h>0)?5:7); }
 }
 
 static double dsin_table[] = {
@@ -3993,57 +3653,8 @@ static int isin_table[] = {
   -40,  -35,  -31,  -26,  -22,  -17,  -13,   -8,   -4,    0,
 };
 
-/* table-based approximate sine */
-double dsin(int theta)
-{
-    while(theta > 360)
-	theta -= 360;
-
-    return (dsin_table[theta]);
-}
-
-/* returns 256 * sin(theta) */
-int isin(int theta)
-{
-    while(theta > 360)
-	theta -= 360;
-
-    return (isin_table[theta]);
-}
-#include <config.h>
-
-#include <stdio.h>
-/* exit  */
-#include <stdlib.h>
-/* isprint */
-#include <ctype.h>
-
-#include <X11/Xlib.h>
-#include <X11/Xutil.h>
-#include <X11/keysym.h>
-#include <X11/xpm.h>
-
-/* Image */
-#include "image.h"
-#include "graphic.h"
-#include "xsoldier.h"
-
-#include "extern.h"
-
-
-#if 0
-static GC FontGC;
-static GC BackGC;
-static GC FillGC;
-static XColor black;
-static XColor white;
-
-static Display *dpy;
-static Colormap cmap;
-static Window root;
-static Window win;
-static Pixmap WorkPixmap;
-#endif /* 0 */
+double dsin(int theta) { return (dsin_table[theta%360]); } // table-based approximate sine 
+int    isin(int theta) { return (isin_table[theta%360]); } // returns 256 * sin(theta)
 
 static Image **Font1Image;
 static Image **Font2Image;
@@ -4235,20 +3846,15 @@ int graphic_finish(void) {
   return 0;
 }
 
-
 int draw_string(int x, int y, const char *string, int length) {
-  int i;
   y -= 7;
-  for (i = 0; (i < length) && (string[i] != '\0'); i++)
-  {
+  for (int i = 0; (i < length) && (string[i] != '\0'); i++) {
     draw_char(x, y, string[i]);
     x += 7;
   }
-  
   return 0;
 }
 
-/* return 0 on success, negative value on error */
 int draw_char(int x, int y, int c) {
   if (!isprint(c)) { c = '?'; }
 
@@ -4547,32 +4153,6 @@ int draw_char(int x, int y, int c) {
   return -2;
 }
 
-/* xsoldier, a shoot 'em up game with "not shooting" bonus
- * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
- * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
- *
- * This is a copyleft program.  See the file LICENSE for details.
- */
-/* $Id: input.c,v 1.17 2006/09/16 09:20:59 oohara Exp $ */
-
-#include <config.h>
-
-#include <X11/Xlib.h>
-
-
-#include "image.h"
-#include "xsoldier.h"
-#include "extern.h"
-#include "graphic.h"
-#include "input.h"
-#include "key.h"
-#include "manage.h"
-
-
-
-static void SetKeyMask(KeySym key);
-static void UnsetKeyMask(KeySym key);
-
 int input_init(void) {
   keymask = 0;
 
@@ -4585,185 +4165,25 @@ int input_init(void) {
   spdwnKey = XKeysymToString(SpeedDOWNKey);
   pauseKey = XKeysymToString(PauseKey);
   quitKey  = XKeysymToString(QuitKey);
-#ifdef DEBUG
-  weaponchangeKey = XKeysymToString(WeaponChangeKey);
-  clearenemyshotKey = XKeysymToString(ClearEnemyShotKey);
-#endif /* DEBUG */
   return 0;
 }
 
-
-/* return 0 if the game is over, 1 if not */
 int event_handle(void) {
-  while( XPending( dpy ) ) {
-    XNextEvent(dpy,&event);
-    switch(event.type)
-    {
-    case Expose:
-      if (event.xexpose.count == 0)
-        XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FieldW,FieldH,0,0);
-      break;
-    case EnterNotify:
-      XAutoRepeatOff(dpy);
-      break;
-    case LeaveNotify:
-      XAutoRepeatOn(dpy);
-      if (manage->player[0]->Data.used==False && player->Ships==0)
-        return 0;
-      else
-      {
-        keymask = 0;
-        keymask |= Pause;
-      }
-      break;
-    case KeyPress:
-      if (manage->player[0]->Data.used==False && player->Ships==0)
-        /* key press after the game is over */
-        return 0;
-      else
-        SetKeyMask(XLookupKeysym(&(event.xkey),0));
-      
-      if (keymask&Quit)
-        return 0;
-      break;
-    case KeyRelease:
-      UnsetKeyMask(XLookupKeysym(&(event.xkey),0));
-      break;
-    }
-  }
+  while( XPending( dpy ) ) { XNextEvent(dpy,&event); }
   return 1;
 }
 
-/* return
- * 1 if the game starts
- * -1 if the program quits
- * 0 otherwise
- */
 int event_handle_opening(void) {
-  while(XPending(dpy))
-  {
-    XNextEvent(dpy,&event);
-    switch(event.type)
-    {
-    case Expose:
-      break;
-    case EnterNotify:
-      XAutoRepeatOff(dpy);
-      break;
-    case LeaveNotify:
-      XAutoRepeatOn(dpy);
-      break;
-    case KeyPress:
-      if (XLookupKeysym(&(event.xkey),0) == XK_space)
-      {
-        return 1;
-      }
-      if (XLookupKeysym(&(event.xkey),0) == QuitKey)
-      {
-        return -1;
-      }
-      break;
-    }
-  }
-
-
+  while(XPending(dpy)) { XNextEvent(dpy,&event); }
   return 0;
 }
 
-/* return 0 if the ending is over, 1 if not */
-int event_handle_ending(void)
-{
-
-  while(XPending(dpy))
-  {
-    XNextEvent(dpy,&event);
-    switch(event.type)
-    {
-    case EnterNotify:
-      XAutoRepeatOff(dpy);
-      break;
-    case LeaveNotify:
-      XAutoRepeatOn(dpy);
-      break;
-    case KeyPress:
-      if (XLookupKeysym(&(event.xkey),0) == XK_space)
-      {
-          return 0;
-      }
-    }
-  }
-
-
+int event_handle_ending(void) {
+  while(XPending(dpy)) { XNextEvent(dpy,&event); }
   return 1;
 }
 
-static void SetKeyMask(KeySym key)
-{
-  if (key ==  UpKey)
-    keymask |= Up;
-  else if (key == DownKey)
-    keymask |= Down;
-  else if (key == LeftKey)
-    keymask |= Left;
-  else if (key == RightKey)
-    keymask |= Right;
-  else if (key == ShotKey)
-    keymask |= Shot;
-  else if (key == SpeedUPKey)
-    keymask |= SpeedUP;
-  else if (key == SpeedDOWNKey)
-    keymask |= SpeedDOWN;
-  else if (key == PauseKey)
-    /* toggle */
-    keymask ^= Pause;
-  else if (key == QuitKey)
-    keymask |= Quit;
-#ifdef DEBUG
-  else if (key == XK_w)
-  {
-    if (manage->player[0]->Data.Cnt[5] == 3)
-      manage->player[0]->Data.Cnt[5] = 0;
-    manage->player[0]->Data.Cnt[5]++;
-  }
-  else if (key == XK_c)
-    ClearEnemyShotManage(manage);
-#endif
-}
 
-static void UnsetKeyMask(KeySym key)
-{
-  if (key ==  UpKey)
-    keymask &= ~Up;
-  else if (key == DownKey)
-    keymask &= ~Down;
-  else if (key == LeftKey)
-    keymask &= ~Left;
-  else if (key == RightKey)
-    keymask &= ~Right;
-  else if (key == ShotKey)
-    keymask &= ~Shot;
-  else if (key == SpeedUPKey)
-    keymask &= ~SpeedUP;
-  else if (key == SpeedDOWNKey)
-    keymask &= ~SpeedDOWN;
-  else if (key == QuitKey)
-    keymask &= ~Quit;
-}
-
-#include <config.h>
-
-/* strncpy */
-#include <string.h>
-#include <malloc.h>
-
-#include "image.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "common.h"
-#include "callback.h"
-#include "extern.h"
-
-#include "enemyshot.h"
 
 CharManage *NewManage(int playerMax, int enemyMax) {
     CharManage *New;
