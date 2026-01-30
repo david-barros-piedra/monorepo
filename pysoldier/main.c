@@ -10,30 +10,36 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
-#include <X11/keysym.h>
 #include <X11/Xlib.h>
 #include <X11/xpm.h>
 #include <X11/Xutil.h>
 #include <wait.h>
 
-typedef struct {
-    Pixmap pixmap;
-    Pixmap mask;
-    GC     maskgc;
-    int    width, height;
-} Image;
+/* definitions of keys */
+#define UpKey    XK_Up
+#define DownKey  XK_Down
+#define LeftKey  XK_Left
+#define RightKey XK_Right
+#define ShotKey  XK_Shift_L
+#define SpeedUPKey   XK_a
+#define SpeedDOWNKey XK_s
+#define PauseKey      XK_p
+#define QuitKey      XK_q
 
-extern void ReadFileToImage(const char *filename, Image **img);
-extern void PutImage(Image *img, int x, int y);
-extern void SplitImage(Image *img, Image ***imgs, int nsplit);
-extern void FreeImage(Image *img);
-extern void FreeImages(Image **imgs, int nimg);
-extern Image **ImageInit(const char *filename, int split);
+/* don't touch them */
+#define Up    (1L<<0)
+#define Down  (1L<<1)
+#define Left  (1L<<2)
+#define Right (1L<<3)
+#define Shot  (1L<<4)
+#define SpeedUP   (1L<<5)
+#define SpeedDOWN (1L<<6)
+#define Pause (1L<<7)
+#define Quit (1L<<8)
 
 #define MaxStage 8
 #define ShotTiming 100
 #define MaxLevel 80
-
 #define FIRST1UP 200000
 #define EVERY1UP 200000
 
@@ -43,6 +49,32 @@ extern Image **ImageInit(const char *filename, int split);
 #define MEnemy  (1L<<2)
 #define MEShot  (1L<<3)
 #define MItem   (1L<<4)
+/* field */
+#define  FIELD_WIDTH (500)
+#define  FIELD_HEIGHT (650)
+
+#define dcos(i) dsin(i+90)
+#define icos(i) isin(i+90)
+
+
+class Image {
+  public:
+    Pixmap pixmap;
+    Pixmap mask;
+    GC     maskgc;
+    int    width, height;
+
+    static Image* ReadFileToImage( const char *filename );
+
+    Image** SplitImage(int nsplit);
+
+} ;
+
+void PutImage(Image *img, int x, int y);
+void FreeImage(Image *img);
+void FreeImages(Image **imgs, int nimg);
+Image **ImageInit(const char *filename, int split);
+
 
 /* death flag */
 typedef enum {NoneDel,NullDel,ZakoDel,BossDel} DelAtt;
@@ -100,31 +132,29 @@ typedef struct
 
 /* table of objects */
 typedef struct {
-    CharObj **player;
-    CharObj **enemy;
-
-    CharObj New;
-
-    int PlayerMax;
-    int PlayerNum;
-    int EnemyMax;
-    int EnemyNum;
+  CharObj **player;
+  CharObj **enemy;
+  CharObj New;
+  int PlayerMax;
+  int PlayerNum;
+  int EnemyMax;
+  int EnemyNum;
 
   /* frequently used objects */
-    CharObj EnemyShot;
-    CharObj Bomb;
-    CharObj LargeBomb;
+  CharObj EnemyShot;
+  CharObj Bomb;
+  CharObj LargeBomb;
 
-    int Level;
-    int Stage;
-    int Loop;
-    int Appear;
+  int Level;
+  int Stage;
+  int Loop;
+  int Appear;
 
-    int StageEnemy;
-    int StageShotDown;
-    int ZakoApp;
-    int BossApp;
-    int BossKill;
+  int StageEnemy;
+  int StageShotDown;
+  int ZakoApp;
+  int BossApp;
+  int BossKill;
 
   int BossTime;
   int flag_maxlevel;
@@ -133,8 +163,8 @@ typedef struct {
   int flag_nopausemessage;
   int program_should_quit;
 } CharManage;
-/* this is global because we have only one table */
 
+/* this is global because we have only one table */
 typedef struct {
     char name[16];
     int score;
@@ -150,47 +180,47 @@ typedef struct {
 } PlayerData;
 
 
-extern CharManage *NewManage(int playerMax, int enemyMax);
-extern void ClearManage(CharManage *manage_temp);
-extern void ResetManage(CharManage *manage_temp);
-extern void DeleteManage(CharManage *Del);
+CharManage *NewManage(int playerMax, int enemyMax);
+void ClearManage(CharManage *manage_temp);
+void ResetManage(CharManage *manage_temp);
+void DeleteManage(CharManage *Del);
 
-extern int NewObj(int mask,
+int NewObj(int mask,
 		  DelAtt (*action)(ObjData *my),
 		  DelAtt (*hit)(ObjData *my, ObjData *your),
 		  void (*realize)(ObjData *my, GrpData *grp));
-extern void DelObj(CharObj *del);
-extern PlayerData *NewPlayerData(void);
-extern void ClearEnemyShotManage(CharManage *manage_temp);
+void DelObj(CharObj *del);
+PlayerData *NewPlayerData(void);
+void ClearEnemyShotManage(CharManage *manage_temp);
 
 
-extern int mainLoop(void);
+int mainLoop(void);
 
-extern void NewPlayer(int x, int y);
-extern void RestartPlayer(int x, int y);
-extern DelAtt PlayerAction(ObjData *my);
-extern DelAtt PlayerHit(ObjData *my, ObjData *your);
+void NewPlayer(int x, int y);
+void RestartPlayer(int x, int y);
+DelAtt PlayerAction(ObjData *my);
+DelAtt PlayerHit(ObjData *my, ObjData *your);
 
-extern void PlayerShot1(int x, int y, int speed, int angle, int attack);
-extern void PlayerShot2(int x, int y, int speed, int angle);
-extern DelAtt PlayerShotAct1(ObjData *my);
-extern DelAtt PlayerShotHit1(ObjData *my, ObjData *your);
-extern void PlayerShot3(int x, int y, int inertX, int attack);
-extern DelAtt PlayerShotAct3(ObjData *my);
-extern DelAtt PlayerShotHit3(ObjData *my, ObjData *your);
-extern void PlayerLosePower(void);
+void PlayerShot1(int x, int y, int speed, int angle, int attack);
+void PlayerShot2(int x, int y, int speed, int angle);
+DelAtt PlayerShotAct1(ObjData *my);
+DelAtt PlayerShotHit1(ObjData *my, ObjData *your);
+void PlayerShot3(int x, int y, int inertX, int attack);
+DelAtt PlayerShotAct3(ObjData *my);
+DelAtt PlayerShotHit3(ObjData *my, ObjData *your);
+void PlayerLosePower(void);
 
-extern int graphic_init(void);
-extern int clear_window(void);
-extern int redraw_window(void);
-extern int graphic_finish(void);
-extern int draw_string(int x, int y, const char *string, int length);
-extern int draw_char(int x, int y, int c);
+int graphic_init(void);
+int clear_window(void);
+int redraw_window(void);
+int graphic_finish(void);
+int draw_string(int x, int y, const char *string, int length);
+int draw_char(int x, int y, int c);
 
-extern int input_init(void);
-extern int event_handle(void);
-extern int event_handle_opening(void);
-extern int event_handle_ending(void);
+int input_init(void);
+int event_handle(void);
+int event_handle_opening(void);
+int event_handle_ending(void);
 
 
 /* wait by signal */
@@ -234,139 +264,143 @@ CharManage *manage;
 /* player data (score.. stage...) */
 PlayerData *player;
 
-/* field */
-#define  FieldW (500)
-#define  FieldH (650)
-
 /* star */
 int StarPtn1;
 int StarPtn2;
 
 /* image */
-Image **PlayerImage;
-Image **PShot1Image;
-Image **PShot2Image;
-Image **PShot3Image;
+Image** PlayerImage;
+Image** PShot1Image;
+Image** PShot2Image;
+Image** PShot3Image;
 
-Image **EShotImage;
-Image **ELaserImage;
-Image **EMissileImage;
-Image **EBoundImage;
-Image **ERingImage;
+Image** EShotImage;
+Image** ELaserImage;
+Image** EMissileImage;
+Image** EBoundImage;
+Image** ERingImage;
 
-Image **BombImage;
-Image **LargeBombImage;
+Image** BombImage;
+Image** LargeBombImage;
 
-Image **Enemy1Image;
-Image **Enemy2Image;
-Image **Enemy3Image;
-Image **Enemy4Image;
-Image **Enemy5Image;
-Image **Enemy6Image;
-Image **Enemy7Image;
+Image** EnemyImage[7];
 
-Image **Boss1Image;
-Image **Boss2Image;
-Image **Boss3Image;
-Image **Boss4Image;
-Image **Boss5Image;
-Image **Boss6Image;
-Image **Boss7Image;
+Image** Boss1Image;
+Image** Boss2Image;
+Image** Boss3Image;
+Image** Boss4Image;
+Image** Boss5Image;
+Image** Boss6Image;
+Image** Boss7Image;
 
-Image **ItemImage;
+Image** ItemImage;
 
 
 int integerrng(void) ;
-extern void NewBomb(int x, int y);
-extern void NewLargeBomb(int x, int y);
-extern DelAtt BombAct(ObjData *my);
-extern int GetDirection(int mx, int my, int sx, int sy);
+void NewBomb(int x, int y);
+void NewLargeBomb(int x, int y);
+DelAtt BombAct(ObjData *my);
+int GetDirection(int mx, int my, int sx, int sy);
+
 
 double dsin(int theta);
-int isin(int theta);
-#define dcos(i) dsin(i+90)
-#define icos(i) isin(i+90)
+
+
+static int isin_table[] = {
+    0,
+    4,    8,   13,   17,   22,   26,   31,   35,   40,   44,
+   48,   53,   57,   61,   66,   70,   74,   79,   83,   87,
+   91,   95,  100,  104,  108,  112,  116,  120,  124,  127,
+  131,  135,  139,  143,  146,  150,  154,  157,  161,  164,
+  167,  171,  174,  177,  181,  184,  187,  190,  193,  196,
+  198,  201,  204,  207,  209,  212,  214,  217,  219,  221,
+  223,  226,  228,  230,  232,  233,  235,  237,  238,  240,
+  242,  243,  244,  246,  247,  248,  249,  250,  251,  252,
+  252,  253,  254,  254,  255,  255,  255,  255,  255,  256,
+  255,  255,  255,  255,  255,  254,  254,  253,  252,  252,
+  251,  250,  249,  248,  247,  246,  244,  243,  242,  240,
+  238,  237,  235,  233,  232,  230,  228,  226,  223,  221,
+  219,  217,  214,  212,  209,  207,  204,  201,  198,  196,
+  193,  190,  187,  184,  181,  177,  174,  171,  167,  164,
+  161,  157,  154,  150,  146,  143,  139,  135,  131,  127,
+  124,  120,  116,  112,  108,  104,  100,   95,   91,   87,
+   83,   79,   74,   70,   66,   61,   57,   53,   48,   44,
+   40,   35,   31,   26,   22,   17,   13,    8,    4,    0,
+   -4,   -8,  -13,  -17,  -22,  -26,  -31,  -35,  -40,  -44,
+  -48,  -53,  -57,  -61,  -66,  -70,  -74,  -79,  -83,  -87,
+  -91,  -95, -100, -104, -108, -112, -116, -120, -124, -127,
+ -131, -135, -139, -143, -146, -150, -154, -157, -161, -164,
+ -167, -171, -174, -177, -181, -184, -187, -190, -193, -196,
+ -198, -201, -204, -207, -209, -212, -214, -217, -219, -221,
+ -223, -226, -228, -230, -232, -233, -235, -237, -238, -240,
+ -242, -243, -244, -246, -247, -248, -249, -250, -251, -252,
+ -252, -253, -254, -254, -255, -255, -255, -255, -255, -256,
+ -255, -255, -255, -255, -255, -254, -254, -253, -252, -252,
+ -251, -250, -249, -248, -247, -246, -244, -243, -242, -240,
+ -238, -237, -235, -233, -232, -230, -228, -226, -223, -221,
+ -219, -217, -214, -212, -209, -207, -204, -201, -198, -196,
+ -193, -190, -187, -184, -181, -177, -174, -171, -167, -164,
+ -161, -157, -154, -150, -146, -143, -139, -135, -131, -128,
+ -124, -120, -116, -112, -108, -104, -100,  -95,  -91,  -87,
+  -83,  -79,  -74,  -70,  -66,  -61,  -57,  -53,  -48,  -44,
+  -40,  -35,  -31,  -26,  -22,  -17,  -13,   -8,   -4,    0,
+};
+int    isin(int theta);
+int    isin(int theta) { return (isin_table[theta%360]); } // returns 256 * sin(theta)
 
 
 
-extern void ShotToAngle(int x, int y, int angle, int speed);
-extern void ShotToPoint(int x1, int y1, int x2, int y2, int speed);
-extern DelAtt EnemyShotAct(ObjData *my);
-extern int RingToAngle(int x, int y, int angle, int speed);
-extern int RingToPoint(int x1, int y1, int x2, int y2, int speed);
-extern int HomingShot(int x, int y, int ix, int iy);
-extern DelAtt HomingAct(ObjData *my);
-extern int LaserShot(int x, int y, int speed);
-extern DelAtt EnemyLaserAct(ObjData *my);
-extern int BoundShot(int x, int y, int ix, int iy, int bound);
-extern DelAtt BoundShotAct(ObjData *my);
 
 
-extern DelAtt NullAct(ObjData *my);
+void ShotToAngle(int x, int y, int angle, int speed);
+void ShotToPoint(int x1, int y1, int x2, int y2, int speed);
+DelAtt EnemyShotAct(ObjData *my);
+int RingToAngle(int x, int y, int angle, int speed);
+int RingToPoint(int x1, int y1, int x2, int y2, int speed);
+int HomingShot(int x, int y, int ix, int iy);
+DelAtt HomingAct(ObjData *my);
+int LaserShot(int x, int y, int speed);
+DelAtt EnemyLaserAct(ObjData *my);
+int BoundShot(int x, int y, int ix, int iy, int bound);
+DelAtt BoundShotAct(ObjData *my);
 
-extern DelAtt NullHit(ObjData *my, ObjData *your);
-extern DelAtt NullDelHit(ObjData *my, ObjData *your);
-extern DelAtt DeleteHit(ObjData *my, ObjData *your);
-extern DelAtt DamageHit(ObjData *my, ObjData *your);
-extern DelAtt LargeDamageHit(ObjData *my, ObjData *your);
 
-extern void NullReal(ObjData *my, GrpData *grp);
-extern void DrawRec(ObjData *my, GrpData *grp);
-extern void DrawImage(ObjData *my, GrpData *grp);
+DelAtt NullAct(ObjData *my);
+
+DelAtt NullHit(ObjData *my, ObjData *your);
+DelAtt NullDelHit(ObjData *my, ObjData *your);
+DelAtt DeleteHit(ObjData *my, ObjData *your);
+DelAtt DamageHit(ObjData *my, ObjData *your);
+DelAtt LargeDamageHit(ObjData *my, ObjData *your);
+
+void NullReal(ObjData *my, GrpData *grp);
+void DrawRec(ObjData *my, GrpData *grp);
+void DrawImage(ObjData *my, GrpData *grp);
 
 
-extern int NewEnemy1(int x, int y);
-extern DelAtt EnemyAct1(ObjData *my);
-extern DelAtt EnemyHit1(ObjData *my, ObjData *your);
+int NewEnemy1(int x, int y);
+DelAtt EnemyAct1(ObjData *my);
+DelAtt EnemyHit1(ObjData *my, ObjData *your);
 
-extern int NewEnemy2(int x, int y);
-extern DelAtt EnemyAct2(ObjData *my);
-extern int NewEnemy3(int x, int y);
-extern DelAtt EnemyAct3(ObjData *my);
-extern int NewEnemy4(int x, int y);
-extern DelAtt EnemyAct4(ObjData *my);
-extern int NewEnemy5(int x, int y);
-extern DelAtt EnemyAct5(ObjData *my);
-extern int NewEnemy6(int x, int y);
-extern DelAtt EnemyAct6(ObjData *my);
-extern int NewEnemy7(int x, int y);
-extern DelAtt EnemyAct7(ObjData *my);
-extern int NewEnemy8(int x, int y);
-extern DelAtt EnemyAct8(ObjData *my);
-extern int NewEnemy9(int x, int y);
-extern DelAtt EnemyAct9(ObjData *my);
-extern int NewEnemy10(int x, int y);
+int NewEnemy2(int x, int y);
+DelAtt EnemyAct2(ObjData *my);
+int NewEnemy3(int x, int y);
+DelAtt EnemyAct3(ObjData *my);
+int NewEnemy4(int x, int y);
+DelAtt EnemyAct4(ObjData *my);
+int NewEnemy5(int x, int y);
+DelAtt EnemyAct5(ObjData *my);
+int NewEnemy6(int x, int y);
+DelAtt EnemyAct6(ObjData *my);
+int NewEnemy7(int x, int y);
+DelAtt EnemyAct7(ObjData *my);
+int NewEnemy8(int x, int y);
+DelAtt EnemyAct8(ObjData *my);
+int NewEnemy9(int x, int y);
+DelAtt EnemyAct9(ObjData *my);
+int NewEnemy10(int x, int y);
 DelAtt EnemyAct10(ObjData *my);
 
-
-/* definitions of keys */
-
-#define UpKey    XK_Up
-#define DownKey  XK_Down
-#define LeftKey  XK_Left
-#define RightKey XK_Right
-
-#define ShotKey  XK_Shift_L
-
-#define SpeedUPKey   XK_a
-#define SpeedDOWNKey XK_s
-
-#define PauseKey      XK_p
-#define QuitKey      XK_q
-
-
-
-
-/* don't touch them */
-#define Up    (1L<<0)
-#define Down  (1L<<1)
-#define Left  (1L<<2)
-#define Right (1L<<3)
-#define Shot  (1L<<4)
-#define SpeedUP   (1L<<5)
-#define SpeedDOWN (1L<<6)
-#define Pause (1L<<7)
-#define Quit (1L<<8)
 
 
 static void init(void) {
@@ -387,7 +421,6 @@ int main(int argc, char *argv[]) {
   XFlush(dpy);
 
   keymask = 0;
-  player->Rec[0].score = 0;
   player->Ships = 99;
   player->Next = FIRST1UP;
   while (1) {
@@ -401,31 +434,31 @@ int main(int argc, char *argv[]) {
   return 0;
 }
 
-extern int NewBoss1(void);
-extern DelAtt BossAct1(ObjData *my);
-extern DelAtt BossHit1(ObjData *my, ObjData *your);
+int NewBoss1(void);
+DelAtt BossAct1(ObjData *my);
+DelAtt BossHit1(ObjData *my, ObjData *your);
 
-extern int NewBoss2(void);
-extern DelAtt BossAct2(ObjData *my);
+int NewBoss2(void);
+DelAtt BossAct2(ObjData *my);
 
-extern int NewBoss3(void);
-extern DelAtt BossAct3(ObjData *my);
+int NewBoss3(void);
+DelAtt BossAct3(ObjData *my);
 
-extern int NewBoss4(void);
-extern DelAtt BossAct4(ObjData *my);
+int NewBoss4(void);
+DelAtt BossAct4(ObjData *my);
 
-extern int NewBoss5(void);
-extern DelAtt BossAct5(ObjData *my);
+int NewBoss5(void);
+DelAtt BossAct5(ObjData *my);
 
-extern int NewBoss6(void);
-extern DelAtt BossAct6(ObjData *my);
+int NewBoss6(void);
+DelAtt BossAct6(ObjData *my);
 
-extern int NewBoss7(void);
-extern DelAtt BossAct7(ObjData *my);
+int NewBoss7(void);
+DelAtt BossAct7(ObjData *my);
 
-extern int NewBoss8(void);
-extern DelAtt BossAct8(ObjData *my);
-extern DelAtt BossHit8(ObjData *my, ObjData *your);
+int NewBoss8(void);
+DelAtt BossAct8(ObjData *my);
+DelAtt BossHit8(ObjData *my, ObjData *your);
 
 
 /* local functions for the last boss */
@@ -451,7 +484,7 @@ int NewBoss1(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -90;
 
     manage->New.Data.HP = 120;
@@ -529,7 +562,7 @@ DelAtt BossAct1(ObjData *my)
     else
 	my->Cnt[5]++;
 
-    if ((my->X+my->Cnt[3]>FieldW) || (my->X+my->Cnt[3]<0))
+    if ((my->X+my->Cnt[3]>FIELD_WIDTH) || (my->X+my->Cnt[3]<0))
 	my->Cnt[3] = my->Cnt[3]*(-1);
 
     my->X += my->Cnt[3];
@@ -581,7 +614,7 @@ int NewBoss2(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -60;
 
     manage->New.Data.HP = 200;
@@ -706,7 +739,7 @@ int NewBoss3(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -80;
 
     manage->New.Data.HP = 330;
@@ -788,7 +821,7 @@ DelAtt BossAct3(ObjData *my)
     else
 	my->Cnt[5]++;
 
-    if ((my->X+my->Cnt[3]>FieldW) || (my->X+my->Cnt[3]<0))
+    if ((my->X+my->Cnt[3]>FIELD_WIDTH) || (my->X+my->Cnt[3]<0))
 	my->Cnt[3] = my->Cnt[3]*(-1);
 
     my->X += my->Cnt[3];
@@ -801,7 +834,7 @@ int NewBoss4(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -90;
 
     manage->New.Data.inertX = 0;
@@ -887,7 +920,7 @@ int NewBoss5(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -128;
 
     manage->New.Data.HP = 350;
@@ -1018,7 +1051,7 @@ int NewBoss6(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -64;
 
     manage->New.Data.HP = 400;
@@ -1193,8 +1226,8 @@ DelAtt BossAct6(ObjData *my)
           ShotToAngle(my->X +120, my->Y, 10, 25);
         }
 
-	my->X = integerrng()%FieldW;
-	my->Y = integerrng()%((FieldH -(FieldH%2))/2);
+	my->X = integerrng()%FIELD_WIDTH;
+	my->Y = integerrng()%((FIELD_HEIGHT -(FIELD_HEIGHT%2))/2);
     }
 
     return NoneDel;
@@ -1212,7 +1245,7 @@ int NewBoss7(void)
     manage->New.Data.Width = 32;
     manage->New.Data.Height = 32;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
     manage->New.Data.Cnt[0] = 0;
@@ -1270,20 +1303,20 @@ DelAtt BossAct7(ObjData *my)
 
     if ((my->Cnt[6] != 0) && (manage->BossTime >= 1))
     {
-      if ((my->X+my->Cnt[3]>FieldW) || (my->X+my->Cnt[3]<0))
+      if ((my->X+my->Cnt[3]>FIELD_WIDTH) || (my->X+my->Cnt[3]<0))
         my->Cnt[3] = my->Cnt[3]*(-1);
-      if ((my->Y+my->Cnt[4]>FieldH) || (my->Y+my->Cnt[4]<0))
+      if ((my->Y+my->Cnt[4]>FIELD_HEIGHT) || (my->Y+my->Cnt[4]<0))
         my->Cnt[4] = my->Cnt[4]*(-1);
     }
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
     {
       if ((player->Ships <= 0) && (manage->player[0]->Data.Cnt[3] != 0))
         return NoneDel;
       else
         return BossDel;
     }
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
     {
       if ((player->Ships <= 0) && (manage->player[0]->Data.Cnt[3] != 0))
         return NoneDel;
@@ -1294,8 +1327,8 @@ DelAtt BossAct7(ObjData *my)
     my->X += my->Cnt[3];
     my->Y += my->Cnt[4];
 
-    if ((my->Cnt[6] == 0) && (my->X >= 0) && (my->X <= FieldW)
-        && (my->Y >= 0) && (my->Y < FieldH))
+    if ((my->Cnt[6] == 0) && (my->X >= 0) && (my->X <= FIELD_WIDTH)
+        && (my->Y >= 0) && (my->Y < FIELD_HEIGHT))
       my->Cnt[6] = 1;
 
     return NoneDel;
@@ -1306,7 +1339,7 @@ int NewBoss8(void)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    manage->New.Data.X = FieldW/2;
+    manage->New.Data.X = FIELD_WIDTH/2;
     manage->New.Data.Y = -80;
 
     manage->New.Data.HP = 600;
@@ -1384,7 +1417,7 @@ DelAtt BossAct8(ObjData *my)
     {
 	if (my->X>manage->player[0]->Data.X && my->X>my->HarfW)
 	    my->X--;
-	else if (my->X<manage->player[0]->Data.X && my->X<(FieldW-my->HarfW))
+	else if (my->X<manage->player[0]->Data.X && my->X<(FIELD_WIDTH-my->HarfW))
 	    my->X++;
     }
 
@@ -1622,8 +1655,8 @@ static DelAtt BossAct8_n_way_shot(ObjData *my)
   int speedtemp;
   if (my->Cnt[7] % 13 == 0)
   {
-    xtemp = integerrng()%FieldW;
-    ytemp = integerrng()%((FieldH -(FieldH%2))/2);
+    xtemp = integerrng()%FIELD_WIDTH;
+    ytemp = integerrng()%((FIELD_HEIGHT -(FIELD_HEIGHT%2))/2);
     speedtemp = integerrng()%7 + 5;
 
     if (manage->Loop == 1)
@@ -1724,7 +1757,7 @@ int mainLoop( void ) {
     };
     
     /* add the player ship to the table */
-    NewPlayer(FieldW/2,FieldH - 32);
+    NewPlayer(FIELD_WIDTH/2,FIELD_HEIGHT - 32);
     XFlush(dpy);
     for ( int record_data_index = 0; record_data_index<RECORD_DATA_SIZE; record_data_index++ ) {
         keymask = record_data[record_data_index];
@@ -1739,7 +1772,7 @@ int mainLoop( void ) {
 		player->Ships--;
                 ClearEnemyShotManage(manage);
                 PlayerLosePower();
-		RestartPlayer(FieldW/2,FieldH - 32);
+		RestartPlayer(FIELD_WIDTH/2,FIELD_HEIGHT - 32);
 	    }
 	}
 	
@@ -1800,7 +1833,7 @@ int mainLoop( void ) {
 	    else if (manage->ZakoApp == True)
 	    {
               /* normal enemy */
-		if (NewEnemy[integerrng()%(manage->Stage+1)]((integerrng()%FieldW)+1,0) != -1)
+		if (NewEnemy[integerrng()%(manage->Stage+1)]((integerrng()%FIELD_WIDTH)+1,0) != -1)
 		{
 		    manage->StageEnemy++;
 		}
@@ -2215,12 +2248,12 @@ DelAtt PlayerAction(ObjData *my)
     /* boundary check for moving */
     if (my->X - 16 < 0)
 	my->X = 0 + 16;
-    else if (my->X + 16 > FieldW)
-	my->X = FieldW - 16;
+    else if (my->X + 16 > FIELD_WIDTH)
+	my->X = FIELD_WIDTH - 16;
     if (my->Y - 16 < 0)
 	my->Y = 0 + 16;
-    else if (my->Y + 16 > FieldH)
-	my->Y = FieldH - 16;
+    else if (my->Y + 16 > FIELD_HEIGHT)
+	my->Y = FIELD_HEIGHT - 16;
 
     if (my->Cnt[2] > 0)
 	my->Cnt[2]--;
@@ -2454,9 +2487,9 @@ DelAtt PlayerShotAct1(ObjData *my)
     my->Cnt[1] += my->Cnt[3]*my->Speed;
     my->Y = my->Cnt[1] / 256;
 
-    if ((my->X<0) || (my->X>FieldW))
+    if ((my->X<0) || (my->X>FIELD_WIDTH))
 	return NullDel;
-    if ((my->Y<0) || (my->Y>FieldH))
+    if ((my->Y<0) || (my->Y>FIELD_HEIGHT))
 	return NullDel;
 
     return NoneDel;
@@ -2525,9 +2558,9 @@ DelAtt PlayerShotAct3(ObjData *my)
 	my->Y -= my->inertY;
     }
 
-    if ((my->X<0) || (my->X>FieldW))
+    if ((my->X<0) || (my->X>FIELD_WIDTH))
 	return NullDel;
-    if ((my->Y<0) || (my->Y>FieldH))
+    if ((my->Y<0) || (my->Y>FIELD_HEIGHT))
 	return NullDel;
 
     return NoneDel;
@@ -2685,9 +2718,9 @@ DelAtt EnemyShotAct(ObjData *my)
 	    my->image = 0;
     }
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -2806,9 +2839,9 @@ DelAtt HomingAct(ObjData *my)
 
     my->image = GetDirection(0,0,my->inertX,my->inertY);
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -2837,9 +2870,9 @@ DelAtt EnemyLaserAct(ObjData *my)
 {
     my->Y += my->Speed;
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -2872,12 +2905,12 @@ DelAtt BoundShotAct(ObjData *my)
 {
   if (my->Cnt[0] <= my->Cnt[1])
   {
-    if ((my->X+my->inertX>FieldW) || (my->X+my->inertX<0))
+    if ((my->X+my->inertX>FIELD_WIDTH) || (my->X+my->inertX<0))
     {
       my->inertX = my->inertX*(-1);
       my->Cnt[0]++;
     }
-    if ((my->Y+my->inertY>FieldH) || (my->Y+my->inertY<0))
+    if ((my->Y+my->inertY>FIELD_HEIGHT) || (my->Y+my->inertY<0))
     {
       my->inertY = my->inertY*(-1);
       my->Cnt[0]++;
@@ -2891,9 +2924,9 @@ DelAtt BoundShotAct(ObjData *my)
     my->X += my->inertX;
     my->Y += my->inertY;
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -2908,9 +2941,14 @@ DelAtt BoundShotAct(ObjData *my)
  * initialization add action function and display/hit function to the table
  */
 
+class Enemy{
+
+};
+
+
+
 /* run straight ahead */
-int NewEnemy1(int x, int y)
-{
+int NewEnemy1(int x, int y) {
   /* attribute of this object */
     manage->New.Data.hitAtt = MEnemy;
     /* what objects should hit this object */
@@ -2933,11 +2971,48 @@ int NewEnemy1(int x, int y)
     manage->New.Data.Cnt[0] = 0;
 
     /* pixmap for this object */
-    manage->New.Grp.image = Enemy1Image;
+    manage->New.Grp.image = EnemyImage[0];
 
     /* add action function and hit function to the table */
     return NewObj(MEnemy,EnemyAct1,EnemyHit1,DrawImage);
 }
+
+/* codename "sine curve" (in fact it is a parabola) */
+int NewEnemy2(int x, int y){
+    manage->New.Data.hitAtt = MEnemy;
+    manage->New.Data.hitMask = MPlayer | MPShot;
+
+    manage->New.Data.HP = 1;
+    manage->New.Data.Point = 100;
+    manage->New.Data.EnemyAtt = ZakoDel;
+
+    manage->New.Data.Width = 32;
+    manage->New.Data.Height = 32;
+
+    manage->New.Data.X = x;
+    manage->New.Data.Y = 1 - manage->New.Data.Height/2;
+
+    manage->New.Data.inertX = 0;
+    manage->New.Data.inertY = 1;
+
+    manage->New.Data.Angle = 0;
+    manage->New.Data.Speed = 0;
+    manage->New.Data.Cnt[0] = 0;
+    /* range of x */
+    manage->New.Data.Cnt[1] = integerrng()%3 + 5;
+    if (x < FIELD_WIDTH/2)
+	manage->New.Data.Cnt[2] = 0;
+    else
+	manage->New.Data.Cnt[2] = 1;
+
+    manage->New.Data.Cnt[3] = 0;
+
+    manage->New.Grp.image = EnemyImage[2];
+
+    return NewObj(MEnemy,EnemyAct2,DamageHit,DrawImage);
+}
+
+
 
 DelAtt EnemyAct1(ObjData *my)
 {
@@ -2958,9 +3033,9 @@ DelAtt EnemyAct1(ObjData *my)
     my->image = 4;
     my->Y += my->Speed;
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -2999,42 +3074,6 @@ DelAtt EnemyHit1(ObjData *my, ObjData *your)
     
 }
 
-/* codename "sine curve" (in fact it is a parabola) */
-int NewEnemy2(int x, int y)
-{
-
-    manage->New.Data.hitAtt = MEnemy;
-    manage->New.Data.hitMask = MPlayer | MPShot;
-
-    manage->New.Data.HP = 1;
-    manage->New.Data.Point = 100;
-    manage->New.Data.EnemyAtt = ZakoDel;
-
-    manage->New.Data.Width = 32;
-    manage->New.Data.Height = 32;
-
-    manage->New.Data.X = x;
-    manage->New.Data.Y = 1 - manage->New.Data.Height/2;
-
-    manage->New.Data.inertX = 0;
-    manage->New.Data.inertY = 1;
-
-    manage->New.Data.Angle = 0;
-    manage->New.Data.Speed = 0;
-    manage->New.Data.Cnt[0] = 0;
-    /* range of x */
-    manage->New.Data.Cnt[1] = integerrng()%3 + 5;
-    if (x < FieldW/2)
-	manage->New.Data.Cnt[2] = 0;
-    else
-	manage->New.Data.Cnt[2] = 1;
-
-    manage->New.Data.Cnt[3] = 0;
-
-    manage->New.Grp.image = Enemy3Image;
-
-    return NewObj(MEnemy,EnemyAct2,DamageHit,DrawImage);
-}
 
 DelAtt EnemyAct2(ObjData *my)
 {
@@ -3078,7 +3117,7 @@ DelAtt EnemyAct2(ObjData *my)
     else
         my->image = 0;
 
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3105,7 +3144,7 @@ int NewEnemy3(int x, int y)
     manage->New.Data.Cnt[1] = 0;
     manage->New.Data.Cnt[2] = 5;
 
-    manage->New.Grp.image = Enemy1Image;
+    manage->New.Grp.image = EnemyImage[0];
     return NewObj(MEnemy,EnemyAct3,EnemyHit1,DrawImage);
 }
 
@@ -3155,9 +3194,9 @@ DelAtt EnemyAct3(ObjData *my)
 	my->image = 6;
     }
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3183,7 +3222,7 @@ int NewEnemy4(int x, int y)
     manage->New.Data.inertX = 0;
     manage->New.Data.inertY = 0;
 
-    manage->New.Grp.image = Enemy2Image;
+    manage->New.Grp.image = EnemyImage[1];
     return NewObj(MEnemy,EnemyAct4,DamageHit,DrawImage);
 }
 
@@ -3232,9 +3271,9 @@ DelAtt EnemyAct4(ObjData *my)
 
     my->image = GetDirection(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y);
     
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3247,9 +3286,9 @@ int NewEnemy5(int x, int y)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    if (x > FieldW/2)
+    if (x > FIELD_WIDTH/2)
     {
-	manage->New.Data.X = FieldW;
+	manage->New.Data.X = FIELD_WIDTH;
 	manage->New.Data.Cnt[0] = - (integerrng()%10 + 15);
     }
     else
@@ -3270,7 +3309,7 @@ int NewEnemy5(int x, int y)
     manage->New.Data.inertX = 0;
     manage->New.Data.inertY = 0;
 
-    manage->New.Grp.image = Enemy5Image;
+    manage->New.Grp.image = EnemyImage[4];
     return NewObj(MEnemy,EnemyAct5,EnemyHit1,DrawImage);
 }
 
@@ -3310,10 +3349,10 @@ DelAtt EnemyAct5(ObjData *my)
     my->X += (my->Cnt[0] + my->inertX);
     my->Y += 5;
 
-    if ((my->X < 0) || (my->X > FieldW))
+    if ((my->X < 0) || (my->X > FIELD_WIDTH))
 	my->inertX = 0;
 
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3336,7 +3375,7 @@ int NewEnemy6(int x, int y)
     manage->New.Data.X = x;
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
-    if (x > FieldW/2)
+    if (x > FIELD_WIDTH/2)
 	manage->New.Data.inertX = integerrng()%5 + 10;
     else
 	manage->New.Data.inertX = integerrng()%5 - 15;
@@ -3348,7 +3387,7 @@ int NewEnemy6(int x, int y)
     /* "appeared" counter */
     manage->New.Data.Cnt[2] = 0;
 
-    manage->New.Grp.image = Enemy4Image;
+    manage->New.Grp.image = EnemyImage[3];
     return NewObj(MEnemy,EnemyAct6,DamageHit,DrawImage);
 }
 
@@ -3364,12 +3403,12 @@ DelAtt EnemyAct6(ObjData *my)
 
     if ((my->Cnt[2] != 0) && (my->Cnt[0] <= my->Cnt[1]))
     {
-      if ((my->X+my->inertX>FieldW) || (my->X+my->inertX<0))
+      if ((my->X+my->inertX>FIELD_WIDTH) || (my->X+my->inertX<0))
       {
         my->inertX = my->inertX*(-1);
         my->Cnt[0]++;
       }
-      if ((my->Y+my->inertY>FieldH) || (my->Y+my->inertY<0))
+      if ((my->Y+my->inertY>FIELD_HEIGHT) || (my->Y+my->inertY<0))
       {
         my->inertY = my->inertY*(-1);
         my->Cnt[0]++;
@@ -3383,13 +3422,13 @@ DelAtt EnemyAct6(ObjData *my)
     my->X += my->inertX;
     my->Y += my->inertY;
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
-    if ((my->Cnt[2] == 0) && (my->X >= 0) && (my->X <= FieldW)
-        && (my->Y >= 0) && (my->Y < FieldH))
+    if ((my->Cnt[2] == 0) && (my->X >= 0) && (my->X <= FIELD_WIDTH)
+        && (my->Y >= 0) && (my->Y < FIELD_HEIGHT))
       my->Cnt[2] = 1;
     
     return NoneDel;
@@ -3402,8 +3441,8 @@ int NewEnemy7(int x, int y)
     manage->New.Data.hitAtt = MEnemy;
     manage->New.Data.hitMask = MPlayer | MPShot;
 
-    if (x > FieldW/2)
-	manage->New.Data.X = FieldW -50;
+    if (x > FIELD_WIDTH/2)
+	manage->New.Data.X = FIELD_WIDTH -50;
     else
 	manage->New.Data.X =         50;
 
@@ -3414,11 +3453,11 @@ int NewEnemy7(int x, int y)
     manage->New.Data.Width = 32;
     manage->New.Data.Height = 32;
 
-    manage->New.Data.Y = FieldH - 1 + manage->New.Data.Height/2;
+    manage->New.Data.Y = FIELD_HEIGHT - 1 + manage->New.Data.Height/2;
 
     manage->New.Data.Cnt[1] = 0;
 
-    manage->New.Grp.image = Enemy3Image;
+    manage->New.Grp.image = EnemyImage[2];
 
     return NewObj(MEnemy,EnemyAct7,EnemyHit1,DrawImage);
 }
@@ -3441,7 +3480,7 @@ DelAtt EnemyAct7(ObjData *my)
 	my->Y -= 9;
 	my->image = 0;
     }
-    else if (my->Y > FieldH-100)
+    else if (my->Y > FIELD_HEIGHT-100)
     {
 	my->Y -= 6;
 	my->image = 0;
@@ -3466,9 +3505,9 @@ DelAtt EnemyAct7(ObjData *my)
         ShotToAngle(my->X, my->Y, 36, 10);
     }
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3494,7 +3533,7 @@ int NewEnemy8(int x, int y)
     manage->New.Data.Angle = 0;
     manage->New.Data.Speed = integerrng()%5 + 1;
 
-    manage->New.Grp.image = Enemy7Image;
+    manage->New.Grp.image = EnemyImage[6];
 
     return NewObj(MEnemy,EnemyAct8,LargeDamageHit,DrawImage);
 }
@@ -3518,9 +3557,9 @@ DelAtt EnemyAct8(ObjData *my)
     
     my->Y += my->Speed;
     
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3542,7 +3581,7 @@ int NewEnemy9(int x, int y)
     manage->New.Data.X = x;
     manage->New.Data.Y = 1 - manage->New.Data.Height/2;
 
-    if (x > FieldW/2)
+    if (x > FIELD_WIDTH/2)
 	manage->New.Data.inertX = -(integerrng()%10+1);
     else
 	manage->New.Data.inertX = integerrng()%10+1;
@@ -3550,7 +3589,7 @@ int NewEnemy9(int x, int y)
 
     manage->New.Data.Cnt[0] = 0;
 
-    manage->New.Grp.image = Enemy6Image;
+    manage->New.Grp.image = EnemyImage[5];
     return NewObj(MEnemy,EnemyAct9,DamageHit,DrawImage);
 }
 
@@ -3592,9 +3631,9 @@ DelAtt EnemyAct9(ObjData *my)
     else
 	my->image = 5;
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if ((my->Y < 0 - my->Height/2) || (my->Y > FieldH + my->Height/2))
+    if ((my->Y < 0 - my->Height/2) || (my->Y > FIELD_HEIGHT + my->Height/2))
 	return NullDel;
 
     return NoneDel;
@@ -3648,100 +3687,86 @@ DelAtt EnemyAct10(ObjData *my) {
 
     my->image = my->Cnt[0];
 
-    if ((my->X < 0 - my->Width/2) || (my->X > FieldW + my->Width/2))
+    if ((my->X < 0 - my->Width/2) || (my->X > FIELD_WIDTH + my->Width/2))
 	return NullDel;
-    if (my->Y > FieldH + my->Height/2)
+    if (my->Y > FIELD_HEIGHT + my->Height/2)
 	return NullDel;
 
     return NoneDel;
 }
 
-static const char *XpmStatusToString(int status){
-    switch (status)
-    {
-      case XpmColorError:  return "XpmColorError";
-      case XpmSuccess:     return "XpmSuccess";
-      case XpmOpenFailed:  return "XpmOpenFailed";
-      case XpmFileInvalid: return "XpmFileInvalid";
-      case XpmNoMemory:    return "XpmNoMemory";
-      case XpmColorFailed: return "XpmColorFailed";
-    }
-    return "Unknwon status";
-}
 
-void ReadFileToImage(const char *filename, Image **img) {
+Image* Image::ReadFileToImage( const char *filename ) {
+    Image* image = new Image();
+
     XpmAttributes att;
-    const char *FuncName = "ReadFileToImage";
-    int status;
     att.valuemask = XpmColormap;
     att.x_hotspot = 0U;
     att.y_hotspot = 0U;
     att.depth     = 8U;
     att.colormap  = cmap;
 
-    /* I don't know why arg 3 of XpmReadFileToPixmap is not const */
-    status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &((*img)->pixmap), &((*img)->mask), &att);
+    int status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &(image->pixmap), &(image->mask), &att);
     if (status != XpmSuccess) {
-	fprintf(stderr, "%s: [file error] can not read %s (%s)\n",
-		FuncName, filename, XpmStatusToString(status));
+	fprintf(stderr, " [file error] can not read %s\n", filename);
 	fflush(stderr);
 	exit(1);
     }
-    (*img)->width  = att.width;
-    (*img)->height = att.height;
+    image->width  = att.width;
+    image->height = att.height;
 
-    if (((*img)->mask) != None)
-	(*img)->maskgc = XCreateGC(dpy,(*img)->mask,0,0);
+    if ((image->mask) != None)
+	image->maskgc = XCreateGC(dpy,image->mask,0,0);
     else
-	fprintf(stderr, "%s: [pixmap error] clip_mask is None!\n", FuncName);
+	fprintf(stderr, "[pixmap error] clip_mask is None!\n");
 
     XpmFreeAttributes(&att);
 
-    return;
+    return image;
 }
 
-void SplitImage(Image *img, Image ***imgs, int nsplit){
-  int width = 0;
-  int height = 0;
+
+Image** Image::SplitImage(int nsplit){
+  Image* img = this;
   int i;
     GC  gc8, gc1;
 
-    width  = img->width;
-    height = (img->height) / nsplit;
+    int split_width  = img->width;
+    int split_height = (img->height) / nsplit;
 
-    gc8 = XCreateGC(dpy,img->pixmap, 0L,NULL);
-    gc1 = XCreateGC(dpy,img->mask,   0L,NULL);
+    gc8 = XCreateGC( dpy, img->pixmap, 0L, NULL );
+    gc1 = XCreateGC( dpy, img->mask,   0L, NULL );
 
     XSetGraphicsExposures(dpy, gc8, False);
     XSetGraphicsExposures(dpy, gc1, False);
 
-    (*imgs) = (Image **)malloc(sizeof(Image*)*nsplit);
+    Image** images = ( Image** )malloc(sizeof(Image*)*nsplit);
 
-    for (i=0; i<nsplit; i++) { (*imgs)[i] = (Image *)malloc(sizeof(Image)); }
+    for (i=0; i<nsplit; i++) {  images[i] = new Image(); }
 
     for (i=0; i<nsplit; i++) {
 	int x, y;
 
 	x = 0;
-	y = height * i;
+	y = split_height * i;
 
-	(*imgs)[i]->pixmap = XCreatePixmap(dpy,RootWindow(dpy,0),width,height,DefaultDepth(dpy,0));
-	XCopyArea(dpy,img->pixmap,(*imgs)[i]->pixmap,gc8,x,y,width,height,0,0);
+	images[i]->pixmap = XCreatePixmap(dpy,RootWindow(dpy,0),split_width,split_height,DefaultDepth(dpy,0));
+	XCopyArea(dpy,img->pixmap,images[i]->pixmap,gc8,x,y,split_width,split_height,0,0);
 
-	(*imgs)[i]->mask = XCreatePixmap(dpy,RootWindow(dpy,0),width,height,1);
-	XCopyArea(dpy,img->mask,  (*imgs)[i]->mask,gc1,x,y,width,height,0,0);
+	images[i]->mask = XCreatePixmap(dpy,RootWindow(dpy,0),split_width,split_height,1);
+	XCopyArea(dpy,img->mask,images[i]->mask,gc1,x,y,split_width,split_height,0,0);
 
-	(*imgs)[i]->maskgc = XCreateGC(dpy,WorkPixmap,0,0);
-	XSetClipMask(dpy,(*imgs)[i]->maskgc,(*imgs)[i]->mask);
+	images[i]->maskgc = XCreateGC(dpy,WorkPixmap,0,0);
+	XSetClipMask(dpy,images[i]->maskgc,images[i]->mask);
 
-	(*imgs)[i]->width  = width;
-	(*imgs)[i]->height = height;
+	images[i]->width  = split_width;
+	images[i]->height = split_height;
     }
 
     XFreeGC(dpy,gc8);
     XFreeGC(dpy,gc1);
     XFlush(dpy);
-    return;
+    return images;
 }
 
 void PutImage(Image *img, int x, int y) {
@@ -3764,11 +3789,8 @@ void FreeImages(Image **imgs, int nimg) {
 }
 
 Image **ImageInit(const char *filename, int split) {
-  Image*  Digit;
-  Image** Digits;
-  Digit = (Image *)malloc(sizeof(Image));
-  ReadFileToImage( filename,&Digit);
-  SplitImage(Digit,&Digits,split);
+  Image* Digit = Image::ReadFileToImage( filename );
+  Image** Digits = Digit->SplitImage(split);
   FreeImage(Digit);
   return Digits;
 }
@@ -3949,48 +3971,9 @@ static double dsin_table[] = {
  -0.1564, -0.1392, -0.1219, -0.1045, -0.0872, -0.0698, -0.0523, -0.0349, -0.0175, -0.0000,
 };
 
-static int isin_table[] = {
-    0,
-    4,    8,   13,   17,   22,   26,   31,   35,   40,   44,
-   48,   53,   57,   61,   66,   70,   74,   79,   83,   87,
-   91,   95,  100,  104,  108,  112,  116,  120,  124,  127,
-  131,  135,  139,  143,  146,  150,  154,  157,  161,  164,
-  167,  171,  174,  177,  181,  184,  187,  190,  193,  196,
-  198,  201,  204,  207,  209,  212,  214,  217,  219,  221,
-  223,  226,  228,  230,  232,  233,  235,  237,  238,  240,
-  242,  243,  244,  246,  247,  248,  249,  250,  251,  252,
-  252,  253,  254,  254,  255,  255,  255,  255,  255,  256,
-  255,  255,  255,  255,  255,  254,  254,  253,  252,  252,
-  251,  250,  249,  248,  247,  246,  244,  243,  242,  240,
-  238,  237,  235,  233,  232,  230,  228,  226,  223,  221,
-  219,  217,  214,  212,  209,  207,  204,  201,  198,  196,
-  193,  190,  187,  184,  181,  177,  174,  171,  167,  164,
-  161,  157,  154,  150,  146,  143,  139,  135,  131,  127,
-  124,  120,  116,  112,  108,  104,  100,   95,   91,   87,
-   83,   79,   74,   70,   66,   61,   57,   53,   48,   44,
-   40,   35,   31,   26,   22,   17,   13,    8,    4,    0,
-   -4,   -8,  -13,  -17,  -22,  -26,  -31,  -35,  -40,  -44,
-  -48,  -53,  -57,  -61,  -66,  -70,  -74,  -79,  -83,  -87,
-  -91,  -95, -100, -104, -108, -112, -116, -120, -124, -127,
- -131, -135, -139, -143, -146, -150, -154, -157, -161, -164,
- -167, -171, -174, -177, -181, -184, -187, -190, -193, -196,
- -198, -201, -204, -207, -209, -212, -214, -217, -219, -221,
- -223, -226, -228, -230, -232, -233, -235, -237, -238, -240,
- -242, -243, -244, -246, -247, -248, -249, -250, -251, -252,
- -252, -253, -254, -254, -255, -255, -255, -255, -255, -256,
- -255, -255, -255, -255, -255, -254, -254, -253, -252, -252,
- -251, -250, -249, -248, -247, -246, -244, -243, -242, -240,
- -238, -237, -235, -233, -232, -230, -228, -226, -223, -221,
- -219, -217, -214, -212, -209, -207, -204, -201, -198, -196,
- -193, -190, -187, -184, -181, -177, -174, -171, -167, -164,
- -161, -157, -154, -150, -146, -143, -139, -135, -131, -128,
- -124, -120, -116, -112, -108, -104, -100,  -95,  -91,  -87,
-  -83,  -79,  -74,  -70,  -66,  -61,  -57,  -53,  -48,  -44,
-  -40,  -35,  -31,  -26,  -22,  -17,  -13,   -8,   -4,    0,
-};
+
 
 double dsin(int theta) { return (dsin_table[theta%360]); } // table-based approximate sine 
-int    isin(int theta) { return (isin_table[theta%360]); } // returns 256 * sin(theta)
 
 static Image **Font1Image;
 static Image **Font2Image;
@@ -4006,7 +3989,7 @@ int graphic_init( void ) {
   XSizeHints sh;
 
 
-  dpy = XOpenDisplay('\0');
+  dpy = XOpenDisplay("\0");
   if (dpy == NULL) {
     fprintf(stderr,"graphic_init: can't open display.\n");
     exit(1);
@@ -4018,25 +4001,25 @@ int graphic_init( void ) {
   XAllocNamedColor(dpy, cmap, "black", &black, &blackTrue);
   XAllocNamedColor(dpy, cmap, "white", &white, &whiteTrue);
 
-  root = XCreateSimpleWindow(dpy, RootWindow(dpy,0), 0, 0, FieldW+20,
-                             FieldH+20, 0, white.pixel, black.pixel);
+  root = XCreateSimpleWindow(dpy, RootWindow(dpy,0), 0, 0, FIELD_WIDTH+20,
+                             FIELD_HEIGHT+20, 0, white.pixel, black.pixel);
 
   XSetWindowColormap(dpy, root, cmap);
 
   XSelectInput(dpy, root, ExposureMask|EnterWindowMask|LeaveWindowMask|KeyPressMask|KeyReleaseMask);
   XStoreName(dpy, root, "xsoldier");
   sh.flags = (PMaxSize | PMinSize);
-  sh.min_width = FieldW + 20;
-  sh.min_height = FieldH + 20;
-  sh.max_width = FieldW + 20;
-  sh.max_height = FieldH + 20;
+  sh.min_width = FIELD_WIDTH + 20;
+  sh.min_height = FIELD_HEIGHT + 20;
+  sh.max_width = FIELD_WIDTH + 20;
+  sh.max_height = FIELD_HEIGHT + 20;
   XSetWMNormalHints(dpy, root, &sh);
 
-  win = XCreateSimpleWindow(dpy, root, 10, 10, FieldW, FieldH, 1,
+  win = XCreateSimpleWindow(dpy, root, 10, 10, FIELD_WIDTH, FIELD_HEIGHT, 1,
                             white.pixel, black.pixel);
   XSelectInput(dpy, win, ExposureMask|EnterWindowMask|KeyPressMask|KeyReleaseMask);
 
-  WorkPixmap = XCreatePixmap(dpy, win, FieldW, FieldH, DefaultDepth(dpy, 0));
+  WorkPixmap = XCreatePixmap(dpy, win, FIELD_WIDTH, FIELD_HEIGHT, DefaultDepth(dpy, 0));
   FontGC     = XCreateGC(dpy,root,0,0);
   XSetGraphicsExposures(dpy,FontGC,False);
 
@@ -4063,13 +4046,13 @@ int graphic_init( void ) {
   BombImage   = ImageInit( "ExpSmall.xpm",5);
   LargeBombImage= ImageInit( "ExpLarge.xpm",5);
 
-  Enemy1Image = ImageInit( "Enemy1.xpm",8);
-  Enemy2Image = ImageInit( "Enemy2.xpm",8);
-  Enemy3Image = ImageInit( "Enemy3.xpm",8);
-  Enemy4Image = ImageInit( "Enemy4.xpm",8);
-  Enemy5Image = ImageInit( "Enemy5.xpm",4);
-  Enemy6Image = ImageInit( "Enemy6.xpm",6);
-  Enemy7Image = ImageInit( "Enemy7.xpm",1);
+  EnemyImage[0] = ImageInit( "Enemy1.xpm",8);
+  EnemyImage[1] = ImageInit( "Enemy2.xpm",8);
+  EnemyImage[2] = ImageInit( "Enemy3.xpm",8);
+  EnemyImage[3] = ImageInit( "Enemy4.xpm",8);
+  EnemyImage[4] = ImageInit( "Enemy5.xpm",4);
+  EnemyImage[5] = ImageInit( "Enemy6.xpm",6);
+  EnemyImage[6] = ImageInit( "Enemy7.xpm",1);
 
   Boss1Image = ImageInit( "Boss1.xpm",1);
   Boss2Image = ImageInit( "Boss2.xpm",1);
@@ -4112,19 +4095,19 @@ int graphic_init( void ) {
 }
 
 int clear_window(void) {
-  XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FieldW, FieldH);
+  XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FIELD_WIDTH, FIELD_HEIGHT);
   return 0;
 }
 
 
 int redraw_window(void) {
-  XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FieldW,FieldH,0,0);
+  XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FIELD_WIDTH,FIELD_HEIGHT,0,0);
   XFlush(dpy);
   XSync(dpy,False);
 
-  XImage* image = XGetImage(dpy,WorkPixmap,0,0,FieldW,FieldH,AllPlanes,ZPixmap);
-  for(int row=0;row<FieldH;row++){
-    for(int col=0;col<FieldW;col++){
+  XImage* image = XGetImage(dpy,WorkPixmap,0,0,FIELD_WIDTH,FIELD_HEIGHT,AllPlanes,ZPixmap);
+  for(int row=0;row<FIELD_HEIGHT;row++){
+    for(int col=0;col<FIELD_WIDTH;col++){
       printf( "%06lx", XGetPixel(image,col,row) );
     }
   }
@@ -4148,13 +4131,13 @@ int graphic_finish(void) {
   FreeImages(BombImage,5);
   FreeImages(LargeBombImage,5);
 
-  FreeImages(Enemy1Image,8);
-  FreeImages(Enemy2Image,8);
-  FreeImages(Enemy3Image,8);
-  FreeImages(Enemy4Image,8);
-  FreeImages(Enemy5Image,4);
-  FreeImages(Enemy6Image,6);
-  FreeImages(Enemy7Image,1);
+  FreeImages(EnemyImage[0],8);
+  FreeImages(EnemyImage[1],8);
+  FreeImages(EnemyImage[2],8);
+  FreeImages(EnemyImage[3],8);
+  FreeImages(EnemyImage[4],4);
+  FreeImages(EnemyImage[5],6);
+  FreeImages(EnemyImage[6],1);
 
   FreeImages(Boss1Image,1);
   FreeImages(Boss2Image,1);
