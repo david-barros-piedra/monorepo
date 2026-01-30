@@ -3535,3 +3535,1015 @@ DelAtt EnemyAct10(ObjData *my)
 
     return NoneDel;
 }
+#include <config.h>
+
+#include <stdio.h>
+#include <stdlib.h>
+
+#include <X11/Xlib.h>
+#include <X11/xpm.h>
+
+#include "image.h"
+#include "xsoldier.h"
+#include "extern.h"
+
+
+static const char *XpmStatusToString(int status);
+
+static const char *XpmStatusToString(int status){
+    switch (status)
+    {
+      case XpmColorError:  return "XpmColorError";
+      case XpmSuccess:     return "XpmSuccess";
+      case XpmOpenFailed:  return "XpmOpenFailed";
+      case XpmFileInvalid: return "XpmFileInvalid";
+      case XpmNoMemory:    return "XpmNoMemory";
+      case XpmColorFailed: return "XpmColorFailed";
+    }
+    return "Unknwon status";
+}
+
+void ReadFileToImage(const char *filename, Image **img) {
+    XpmAttributes att;
+    const char *FuncName = "ReadFileToImage";
+    int status;
+    /*
+    *img = (Image *)malloc(sizeof(Image));
+    */
+    att.valuemask = XpmColormap;
+    att.x_hotspot = 0U;
+    att.y_hotspot = 0U;
+    att.depth     = 8U;
+    att.colormap  = cmap;
+
+    /* I don't know why arg 3 of XpmReadFileToPixmap is not const */
+    status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &((*img)->pixmap), &((*img)->mask), &att);
+    if (status != XpmSuccess)
+    {
+	fprintf(stderr, "%s: [file error] can not read %s (%s)\n",
+		FuncName, filename, XpmStatusToString(status));
+	fflush(stderr);
+	exit(1); 
+    }
+#ifdef DEBUG
+    /* FIXME */
+    if ((*img)->mask == None)
+	fprintf(stderr, "%s: [format error] %s don't use None color\n", FuncName, filename);
+#endif
+    (*img)->width  = att.width;
+    (*img)->height = att.height;
+
+    if (((*img)->mask) != None)
+	(*img)->maskgc = XCreateGC(dpy,(*img)->mask,0,0);
+    else
+	fprintf(stderr, "%s: [pixmap error] clip_mask is None!\n", FuncName);
+
+    XpmFreeAttributes(&att);
+
+    return;
+}
+
+void SplitImage(Image *img, Image ***imgs, int nsplit){
+  int width = 0;
+  int height = 0;
+  int i;
+#ifdef DEBUG
+    const char *FuncName = "SplitImage";
+#endif
+
+    GC  gc8, gc1;
+
+    width  = img->width;
+    height = (img->height) / nsplit;
+#ifdef DEBUG
+    if ((img->height) % nsplit != 0)
+    {
+	fprintf(stderr, "%s: [warning] img->height (%d)/nsplit (%d) isn't just!\n", FuncName, img->height, nsplit);
+	fflush(stderr);
+    }
+#endif
+
+    gc8 = XCreateGC(dpy,img->pixmap, 0L,NULL);
+    gc1 = XCreateGC(dpy,img->mask,   0L,NULL);
+
+    XSetGraphicsExposures(dpy, gc8, False);
+    XSetGraphicsExposures(dpy, gc1, False);
+
+    (*imgs) = (Image **)malloc(sizeof(Image*)*nsplit);
+
+    for (i=0; i<nsplit; i++)
+	(*imgs)[i] = (Image *)malloc(sizeof(Image));
+
+    for (i=0; i<nsplit; i++)
+    {
+	int x, y;
+
+	x = 0;
+	y = height * i;
+
+	(*imgs)[i]->pixmap = XCreatePixmap(dpy,RootWindow(dpy,0),width,height,DefaultDepth(dpy,0));
+	XCopyArea(dpy,img->pixmap,(*imgs)[i]->pixmap,gc8,x,y,width,height,0,0);
+
+	(*imgs)[i]->mask = XCreatePixmap(dpy,RootWindow(dpy,0),width,height,1);
+	XCopyArea(dpy,img->mask,  (*imgs)[i]->mask,gc1,x,y,width,height,0,0);
+
+	(*imgs)[i]->maskgc = XCreateGC(dpy,WorkPixmap,0,0);
+	XSetClipMask(dpy,(*imgs)[i]->maskgc,(*imgs)[i]->mask);
+
+	(*imgs)[i]->width  = width;
+	(*imgs)[i]->height = height;
+    }
+
+    XFreeGC(dpy,gc8);
+    XFreeGC(dpy,gc1);
+    XFlush(dpy);
+    return;
+}
+
+void PutImage(Image *img, int x, int y) {
+  XSetClipOrigin(dpy,img->maskgc,x,y);
+  XCopyArea(dpy,img->pixmap,WorkPixmap,img->maskgc,0,0,img->width,img->height,x,y);
+}
+
+void FreeImage(Image *img) {
+  XFreePixmap(dpy, img->pixmap);
+  XFreePixmap(dpy, img->mask);
+  XFreeGC(dpy, img->maskgc);
+  free(img);
+  return;
+}
+
+void FreeImages(Image **imgs, int nimg) {
+  while (nimg) { FreeImage( imgs[ --nimg ] ); }
+  free( imgs );
+  return;
+}
+
+Image **ImageInit(const char *filename, int split) {
+  Image*  Digit;
+  Image** Digits;
+  Digit = (Image *)malloc(sizeof(Image));
+  ReadFileToImage( filename,&Digit);
+  SplitImage(Digit,&Digits,split);
+  FreeImage(Digit);
+  return Digits;
+}
+
+#include <X11/Xlib.h>
+#include <X11/xpm.h>
+
+#include "image.h"
+#include "xsoldier.h"
+#include "common.h"
+#include "extern.h"
+/* ShotToPoint */
+#include "enemyshot.h"
+#include "graphic.h"
+
+#include "callback.h"
+
+/* action */
+/* do nothing */
+DelAtt NullAct(ObjData *my)
+{
+    return NoneDel;
+}
+
+
+/* hit */
+/* nothing can hit me, I am immutable */
+DelAtt NullHit(ObjData *my, ObjData *your)
+{
+    return NoneDel;
+}
+
+/* simply die */
+DelAtt NullDelHit(ObjData *my, ObjData *your)
+{
+    return NullDel;
+}
+
+/* die with explosion */
+DelAtt DeleteHit(ObjData *my, ObjData *your)
+{
+    NewBomb(my->X,my->Y);
+    return my->EnemyAtt;
+}
+
+/* deal damage, explode if dead */
+DelAtt DamageHit(ObjData *my, ObjData *your)
+{
+  int temp = your->Attack;
+    if (my->HP < your->Attack)
+      temp = my->HP;
+
+    my->HP -= temp;
+   player->Rec[0].score += temp;
+    if (my->HP <= 0)
+    {
+      player->Rec[0].score -= 1;
+	if (manage->Loop > 2)
+	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
+	NewBomb(my->X,my->Y);
+
+        my->showDamegeTime = 0;
+	return my->EnemyAtt;
+    }
+    else
+    {
+      my->showDamegeTime = 15; 
+      return NoneDel;
+    }
+    
+}
+
+/* same above, but with big explosion */
+DelAtt LargeDamageHit(ObjData *my, ObjData *your)
+{
+  int temp = your->Attack;
+    if (my->HP < your->Attack)
+      temp = my->HP;
+
+    my->HP -= temp;
+   player->Rec[0].score += temp;
+
+    if (my->HP <= 0)
+    {
+      player->Rec[0].score -= 1;
+	if (manage->Loop > 2)
+	    ShotToPoint(my->X,my->Y,manage->player[0]->Data.X,manage->player[0]->Data.Y,5);
+	NewLargeBomb(my->X,my->Y);
+
+        my->showDamegeTime = 0;
+	return my->EnemyAtt;
+    }
+    else
+    {
+      my->showDamegeTime = 15;      
+      return NoneDel;
+    }
+}
+
+/* display */
+void NullReal(ObjData *my, GrpData *grp){ return; }
+
+/* rectangle-drawing function for collision-detection debug */
+void DrawRec(ObjData *my, GrpData *grp) {
+  XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height);
+  return;
+}
+
+/* display pixmap */
+void DrawImage(ObjData *my, GrpData *grp) {
+    PutImage( grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH);
+    return;
+}
+/* xsoldier, a shoot 'em up game with "not shooting" bonus
+ * Copyright (C) 1997 Yuusuke HASHIMOTO <s945750@educ.info.kanagawa-u.ac.jp>
+ * Copyright (C) 2002 Oohara Yuuma  <oohara@libra.interq.or.jp>
+ *
+ * This is a copyleft program.  See the file LICENSE for details.
+ */
+/* $Id: common.c,v 1.4 2002/04/29 03:38:41 oohara Exp $ */
+
+/*
+#include <X11/Xlib.h>
+#include <X11/xpm.h>
+*/
+/* abs */
+#include <stdlib.h>
+
+#include "image.h"
+#include "xsoldier.h"
+#include "common.h"
+#include "callback.h"
+#include "extern.h"
+
+int integerrng() { return lrand48(); }
+
+void NewBomb(int x, int y) {
+    int i;
+
+    if (manage->EnemyNum >= manage->EnemyMax)
+        return;
+
+    for (i=1; i<manage->EnemyMax; i++) {
+        if (manage->enemy[i]->Data.used == False)
+	{
+	    manage->Bomb.Data.X = x;
+	    manage->Bomb.Data.Y = y;
+
+	    manage->enemy[i]->Data    = manage->Bomb.Data;
+	    manage->enemy[i]->Grp     = manage->Bomb.Grp;
+            manage->enemy[i]->Action  = BombAct;
+            manage->enemy[i]->Realize = DrawImage;
+            manage->enemy[i]->Hit     = NullHit;
+
+	    manage->EnemyNum++;
+	    return;
+	}
+    }
+}
+
+void NewLargeBomb(int x, int y)
+{
+    int i;
+
+    if (manage->EnemyNum >= manage->EnemyMax)
+        return;
+
+    for (i=1; i<manage->EnemyMax; i++)
+    {
+        if (manage->enemy[i]->Data.used == False)
+	{
+	    manage->LargeBomb.Data.X = x;
+	    manage->LargeBomb.Data.Y = y;
+
+	    manage->enemy[i]->Data    = manage->LargeBomb.Data;
+	    manage->enemy[i]->Grp     = manage->LargeBomb.Grp;
+            manage->enemy[i]->Action  = BombAct;
+            manage->enemy[i]->Realize = DrawImage;
+            manage->enemy[i]->Hit     = NullHit;
+
+	    manage->EnemyNum++;
+	    return;
+	}
+    }
+}
+
+DelAtt BombAct(ObjData *my)
+{
+    my->image = my->Cnt[0];
+    my->Cnt[0]++;
+    if (my->Cnt[0] > 5)
+	return NullDel;
+    return NoneDel;
+}
+
+int GetDirection(int mx, int my, int sx, int sy)
+{
+    static double hi;
+    static int uw;
+    static int uh;
+    static int h;
+    static int w;
+
+    uw = abs(sx-mx);
+    uh = abs(sy-my);
+    h = sy-my;
+    w = sx-mx;
+
+    if (!uw) return (uh>0)?4:0;
+    if (!uh) return (uw>0)?2:6;
+
+    hi = (double)uh/uw;
+    if (hi < 0.42)
+        return (w > 0) ? 2: 6;
+    else if (hi > 2.42)
+        return (h > 0) ? 4: 0;
+    else
+    {
+        return (w>0)?((h>0)?3:1):((h>0)?5:7);
+        /***
+        if (w > 0 && h > 0) return 3;
+        if (w > 0 && h < 0) return 1;
+        if (w < 0 && h > 0) return 5;
+        if (w < 0 && h < 0) return 7;
+        ***/
+    }
+}
+
+static double dsin_table[] = {
+  0.0000,
+  0.0175,  0.0349,  0.0523,  0.0698,  0.0872,  0.1045,  0.1219,  0.1392,  0.1564,  0.1736,
+  0.1908,  0.2079,  0.2250,  0.2419,  0.2588,  0.2756,  0.2924,  0.3090,  0.3256,  0.3420,
+  0.3584,  0.3746,  0.3907,  0.4067,  0.4226,  0.4384,  0.4540,  0.4695,  0.4848,  0.5000,
+  0.5150,  0.5299,  0.5446,  0.5592,  0.5736,  0.5878,  0.6018,  0.6157,  0.6293,  0.6428,
+  0.6561,  0.6691,  0.6820,  0.6947,  0.7071,  0.7193,  0.7314,  0.7431,  0.7547,  0.7660,
+  0.7771,  0.7880,  0.7986,  0.8090,  0.8192,  0.8290,  0.8387,  0.8480,  0.8572,  0.8660,
+  0.8746,  0.8829,  0.8910,  0.8988,  0.9063,  0.9135,  0.9205,  0.9272,  0.9336,  0.9397,
+  0.9455,  0.9511,  0.9563,  0.9613,  0.9659,  0.9703,  0.9744,  0.9781,  0.9816,  0.9848,
+  0.9877,  0.9903,  0.9925,  0.9945,  0.9962,  0.9976,  0.9986,  0.9994,  0.9998,  1.0000,
+  0.9998,  0.9994,  0.9986,  0.9976,  0.9962,  0.9945,  0.9925,  0.9903,  0.9877,  0.9848,
+  0.9816,  0.9781,  0.9744,  0.9703,  0.9659,  0.9613,  0.9563,  0.9511,  0.9455,  0.9397,
+  0.9336,  0.9272,  0.9205,  0.9135,  0.9063,  0.8988,  0.8910,  0.8829,  0.8746,  0.8660,
+  0.8572,  0.8480,  0.8387,  0.8290,  0.8192,  0.8090,  0.7986,  0.7880,  0.7771,  0.7660,
+  0.7547,  0.7431,  0.7314,  0.7193,  0.7071,  0.6947,  0.6820,  0.6691,  0.6561,  0.6428,
+  0.6293,  0.6157,  0.6018,  0.5878,  0.5736,  0.5592,  0.5446,  0.5299,  0.5150,  0.5000,
+  0.4848,  0.4695,  0.4540,  0.4384,  0.4226,  0.4067,  0.3907,  0.3746,  0.3584,  0.3420,
+  0.3256,  0.3090,  0.2924,  0.2756,  0.2588,  0.2419,  0.2250,  0.2079,  0.1908,  0.1736,
+  0.1564,  0.1392,  0.1219,  0.1045,  0.0872,  0.0698,  0.0523,  0.0349,  0.0175,  0.0000,
+ -0.0175, -0.0349, -0.0523, -0.0698, -0.0872, -0.1045, -0.1219, -0.1392, -0.1564, -0.1736,
+ -0.1908, -0.2079, -0.2250, -0.2419, -0.2588, -0.2756, -0.2924, -0.3090, -0.3256, -0.3420,
+ -0.3584, -0.3746, -0.3907, -0.4067, -0.4226, -0.4384, -0.4540, -0.4695, -0.4848, -0.5000,
+ -0.5150, -0.5299, -0.5446, -0.5592, -0.5736, -0.5878, -0.6018, -0.6157, -0.6293, -0.6428,
+ -0.6561, -0.6691, -0.6820, -0.6947, -0.7071, -0.7193, -0.7314, -0.7431, -0.7547, -0.7660,
+ -0.7771, -0.7880, -0.7986, -0.8090, -0.8192, -0.8290, -0.8387, -0.8480, -0.8572, -0.8660,
+ -0.8746, -0.8829, -0.8910, -0.8988, -0.9063, -0.9135, -0.9205, -0.9272, -0.9336, -0.9397,
+ -0.9455, -0.9511, -0.9563, -0.9613, -0.9659, -0.9703, -0.9744, -0.9781, -0.9816, -0.9848,
+ -0.9877, -0.9903, -0.9925, -0.9945, -0.9962, -0.9976, -0.9986, -0.9994, -0.9998, -1.0000,
+ -0.9998, -0.9994, -0.9986, -0.9976, -0.9962, -0.9945, -0.9925, -0.9903, -0.9877, -0.9848,
+ -0.9816, -0.9781, -0.9744, -0.9703, -0.9659, -0.9613, -0.9563, -0.9511, -0.9455, -0.9397,
+ -0.9336, -0.9272, -0.9205, -0.9135, -0.9063, -0.8988, -0.8910, -0.8829, -0.8746, -0.8660,
+ -0.8572, -0.8480, -0.8387, -0.8290, -0.8192, -0.8090, -0.7986, -0.7880, -0.7771, -0.7660,
+ -0.7547, -0.7431, -0.7314, -0.7193, -0.7071, -0.6947, -0.6820, -0.6691, -0.6561, -0.6428,
+ -0.6293, -0.6157, -0.6018, -0.5878, -0.5736, -0.5592, -0.5446, -0.5299, -0.5150, -0.5000,
+ -0.4848, -0.4695, -0.4540, -0.4384, -0.4226, -0.4067, -0.3907, -0.3746, -0.3584, -0.3420,
+ -0.3256, -0.3090, -0.2924, -0.2756, -0.2588, -0.2419, -0.2250, -0.2079, -0.1908, -0.1736,
+ -0.1564, -0.1392, -0.1219, -0.1045, -0.0872, -0.0698, -0.0523, -0.0349, -0.0175, -0.0000,
+};
+
+static int isin_table[] = {
+    0,
+    4,    8,   13,   17,   22,   26,   31,   35,   40,   44,
+   48,   53,   57,   61,   66,   70,   74,   79,   83,   87,
+   91,   95,  100,  104,  108,  112,  116,  120,  124,  127,
+  131,  135,  139,  143,  146,  150,  154,  157,  161,  164,
+  167,  171,  174,  177,  181,  184,  187,  190,  193,  196,
+  198,  201,  204,  207,  209,  212,  214,  217,  219,  221,
+  223,  226,  228,  230,  232,  233,  235,  237,  238,  240,
+  242,  243,  244,  246,  247,  248,  249,  250,  251,  252,
+  252,  253,  254,  254,  255,  255,  255,  255,  255,  256,
+  255,  255,  255,  255,  255,  254,  254,  253,  252,  252,
+  251,  250,  249,  248,  247,  246,  244,  243,  242,  240,
+  238,  237,  235,  233,  232,  230,  228,  226,  223,  221,
+  219,  217,  214,  212,  209,  207,  204,  201,  198,  196,
+  193,  190,  187,  184,  181,  177,  174,  171,  167,  164,
+  161,  157,  154,  150,  146,  143,  139,  135,  131,  127,
+  124,  120,  116,  112,  108,  104,  100,   95,   91,   87,
+   83,   79,   74,   70,   66,   61,   57,   53,   48,   44,
+   40,   35,   31,   26,   22,   17,   13,    8,    4,    0,
+   -4,   -8,  -13,  -17,  -22,  -26,  -31,  -35,  -40,  -44,
+  -48,  -53,  -57,  -61,  -66,  -70,  -74,  -79,  -83,  -87,
+  -91,  -95, -100, -104, -108, -112, -116, -120, -124, -127,
+ -131, -135, -139, -143, -146, -150, -154, -157, -161, -164,
+ -167, -171, -174, -177, -181, -184, -187, -190, -193, -196,
+ -198, -201, -204, -207, -209, -212, -214, -217, -219, -221,
+ -223, -226, -228, -230, -232, -233, -235, -237, -238, -240,
+ -242, -243, -244, -246, -247, -248, -249, -250, -251, -252,
+ -252, -253, -254, -254, -255, -255, -255, -255, -255, -256,
+ -255, -255, -255, -255, -255, -254, -254, -253, -252, -252,
+ -251, -250, -249, -248, -247, -246, -244, -243, -242, -240,
+ -238, -237, -235, -233, -232, -230, -228, -226, -223, -221,
+ -219, -217, -214, -212, -209, -207, -204, -201, -198, -196,
+ -193, -190, -187, -184, -181, -177, -174, -171, -167, -164,
+ -161, -157, -154, -150, -146, -143, -139, -135, -131, -128,
+ -124, -120, -116, -112, -108, -104, -100,  -95,  -91,  -87,
+  -83,  -79,  -74,  -70,  -66,  -61,  -57,  -53,  -48,  -44,
+  -40,  -35,  -31,  -26,  -22,  -17,  -13,   -8,   -4,    0,
+};
+
+/* table-based approximate sine */
+double dsin(int theta)
+{
+    while(theta > 360)
+	theta -= 360;
+
+    return (dsin_table[theta]);
+}
+
+/* returns 256 * sin(theta) */
+int isin(int theta)
+{
+    while(theta > 360)
+	theta -= 360;
+
+    return (isin_table[theta]);
+}
+#include <config.h>
+
+#include <stdio.h>
+/* exit  */
+#include <stdlib.h>
+/* isprint */
+#include <ctype.h>
+
+#include <X11/Xlib.h>
+#include <X11/Xutil.h>
+#include <X11/keysym.h>
+#include <X11/xpm.h>
+
+/* Image */
+#include "image.h"
+#include "graphic.h"
+#include "xsoldier.h"
+
+#include "extern.h"
+
+
+#if 0
+static GC FontGC;
+static GC BackGC;
+static GC FillGC;
+static XColor black;
+static XColor white;
+
+static Display *dpy;
+static Colormap cmap;
+static Window root;
+static Window win;
+static Pixmap WorkPixmap;
+#endif /* 0 */
+
+static Image **Font1Image;
+static Image **Font2Image;
+static Image **Font3Image;
+static Image **Font4Image;
+static Image **Font5Image;
+static Image **Font6Image;
+
+
+int graphic_init( void ) {
+  XColor blackTrue;
+  XColor whiteTrue;
+  XSizeHints sh;
+
+
+  dpy = XOpenDisplay('\0');
+  if (dpy == NULL) {
+    fprintf(stderr,"graphic_init: can't open display.\n");
+    exit(1);
+  }
+
+  cmap = XCreateColormap(dpy, RootWindow(dpy, 0), DefaultVisual(dpy, 0),
+                         AllocNone);
+
+  XAllocNamedColor(dpy, cmap, "black", &black, &blackTrue);
+  XAllocNamedColor(dpy, cmap, "white", &white, &whiteTrue);
+
+  root = XCreateSimpleWindow(dpy, RootWindow(dpy,0), 0, 0, FieldW+20,
+                             FieldH+20, 0, white.pixel, black.pixel);
+
+  XSetWindowColormap(dpy, root, cmap);
+
+  XSelectInput(dpy, root, ExposureMask|EnterWindowMask|LeaveWindowMask|KeyPressMask|KeyReleaseMask);
+  XStoreName(dpy, root, "xsoldier");
+  sh.flags = (PMaxSize | PMinSize);
+  sh.min_width = FieldW + 20;
+  sh.min_height = FieldH + 20;
+  sh.max_width = FieldW + 20;
+  sh.max_height = FieldH + 20;
+  XSetWMNormalHints(dpy, root, &sh);
+
+  win = XCreateSimpleWindow(dpy, root, 10, 10, FieldW, FieldH, 1,
+                            white.pixel, black.pixel);
+  XSelectInput(dpy, win, ExposureMask|EnterWindowMask|KeyPressMask|KeyReleaseMask);
+
+  WorkPixmap = XCreatePixmap(dpy, win, FieldW, FieldH, DefaultDepth(dpy, 0));
+  FontGC     = XCreateGC(dpy,root,0,0);
+  XSetGraphicsExposures(dpy,FontGC,False);
+
+  BackGC       = XCreateGC(dpy,WorkPixmap,0,0);
+  XSetGraphicsExposures(dpy,BackGC,False);
+  XSetForeground(dpy,BackGC,black.pixel);
+
+  FillGC       = XCreateGC(dpy,WorkPixmap,0,0);
+  XSetGraphicsExposures(dpy,FillGC,False);
+  XSetForeground(dpy,FillGC,white.pixel);
+
+
+  PlayerImage = ImageInit( "Player.xpm",6);
+  PShot1Image  = ImageInit( "PlayerShot1.xpm",2);
+  PShot2Image  = ImageInit( "PlayerShot2.xpm",2);
+  PShot3Image  = ImageInit( "PlayerShot3.xpm",3);
+
+  EShotImage  = ImageInit( "EnemyShot.xpm",4);
+  ELaserImage  = ImageInit( "EnemyLaser.xpm",1);
+  EMissileImage  = ImageInit( "EnemyMiss.xpm",8);
+  EBoundImage = ImageInit( "EnemyBound.xpm",8);
+  ERingImage = ImageInit( "EnemyRing.xpm",4);
+
+  BombImage   = ImageInit( "ExpSmall.xpm",5);
+  LargeBombImage= ImageInit( "ExpLarge.xpm",5);
+
+  Enemy1Image = ImageInit( "Enemy1.xpm",8);
+  Enemy2Image = ImageInit( "Enemy2.xpm",8);
+  Enemy3Image = ImageInit( "Enemy3.xpm",8);
+  Enemy4Image = ImageInit( "Enemy4.xpm",8);
+  Enemy5Image = ImageInit( "Enemy5.xpm",4);
+  Enemy6Image = ImageInit( "Enemy6.xpm",6);
+  Enemy7Image = ImageInit( "Enemy7.xpm",1);
+
+  Boss1Image = ImageInit( "Boss1.xpm",1);
+  Boss2Image = ImageInit( "Boss2.xpm",1);
+  Boss3Image = ImageInit( "Boss3.xpm",1);
+  Boss4Image = ImageInit( "Boss4.xpm",1);
+  Boss5Image = ImageInit( "Boss5.xpm",1);
+  Boss6Image = ImageInit( "Boss6.xpm",2);
+  Boss7Image = ImageInit( "Boss7.xpm",1);
+
+  ItemImage = ImageInit( "Item.xpm",4);
+    
+  /* initialize font */
+  /* explanation of font images
+   *  14 * 7
+   *  0@P`p 14
+   * !1AQaq 28
+   * "2BRbr 42
+   * #3CScs 56
+   * $4DTdt 70
+   * %5EUeu 84
+   * &6FVfv 98
+   * '7GWgw 112
+   * (8HXhx 126
+   * )9IYiy 140
+   * *:JZjz 154
+   * +;K[k{ 168
+   * ,<L\l| 182
+   * -=M]m} 196
+   * .>N^n~ 210
+   * /?O_o  224
+   */
+  Font1Image = ImageInit( "font1.xpm" , 16);
+  Font2Image = ImageInit( "font2.xpm" , 16);
+  Font3Image = ImageInit( "font3.xpm" , 16);
+  Font4Image = ImageInit( "font4.xpm" , 16);
+  Font5Image = ImageInit( "font5.xpm" , 16);
+  Font6Image = ImageInit( "font6.xpm" , 16);
+
+  return 0;
+}
+
+int clear_window(void) {
+  XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FieldW, FieldH);
+  return 0;
+}
+
+
+int redraw_window(void) {
+  XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FieldW,FieldH,0,0);
+  XFlush(dpy);
+  XSync(dpy,False);
+
+  XImage* image = XGetImage(dpy,WorkPixmap,0,0,FieldW,FieldH,AllPlanes,ZPixmap);
+  for(int row=0;row<FieldH;row++){
+    for(int col=0;col<FieldW;col++){
+      printf( "%06lx", XGetPixel(image,col,row) );
+    }
+  }
+  printf("\n");
+
+  return 0;
+}
+
+int graphic_finish(void) {
+  FreeImages(PlayerImage,6);
+  FreeImages(PShot1Image,2);
+  FreeImages(PShot2Image,2);
+  FreeImages(PShot3Image,3);
+
+  FreeImages(EShotImage,4);
+  FreeImages(ELaserImage,1);
+  FreeImages(EMissileImage,8);
+  FreeImages(EBoundImage,8);
+  FreeImages(ERingImage,4);
+
+  FreeImages(BombImage,5);
+  FreeImages(LargeBombImage,5);
+
+  FreeImages(Enemy1Image,8);
+  FreeImages(Enemy2Image,8);
+  FreeImages(Enemy3Image,8);
+  FreeImages(Enemy4Image,8);
+  FreeImages(Enemy5Image,4);
+  FreeImages(Enemy6Image,6);
+  FreeImages(Enemy7Image,1);
+
+  FreeImages(Boss1Image,1);
+  FreeImages(Boss2Image,1);
+  FreeImages(Boss3Image,1);
+  FreeImages(Boss4Image,1);
+  FreeImages(Boss5Image,1);
+  FreeImages(Boss6Image,2);
+  FreeImages(Boss7Image,1);
+
+  FreeImages(ItemImage,4);
+
+  FreeImages(Font1Image, 16);
+  FreeImages(Font2Image, 16);
+  FreeImages(Font3Image, 16);
+  FreeImages(Font4Image, 16);
+  FreeImages(Font5Image, 16);
+  FreeImages(Font6Image, 16);
+
+  XFreeGC(dpy, FontGC);
+  XFreeGC(dpy, BackGC);
+  XFreeGC(dpy, FillGC);
+  XAutoRepeatOn(dpy);
+  XFlush(dpy);
+  XCloseDisplay(dpy);
+  return 0;
+}
+
+
+int draw_string(int x, int y, const char *string, int length) {
+  int i;
+  y -= 7;
+  for (i = 0; (i < length) && (string[i] != '\0'); i++)
+  {
+    draw_char(x, y, string[i]);
+    x += 7;
+  }
+  
+  return 0;
+}
+
+/* return 0 on success, negative value on error */
+int draw_char(int x, int y, int c) {
+  if (!isprint(c)) { c = '?'; }
+
+  /* don't assume ASCII */
+  switch ( c ) {
+  case ' ':
+    /* do nothing */
+    return 0;
+  case '!':
+    PutImage(Font1Image[1], x, y);
+    return 0;
+  case '"':
+    PutImage(Font1Image[2], x, y);
+    return 0;
+  case '#':
+    PutImage(Font1Image[3], x, y);
+    return 0;
+  case '$':
+    PutImage(Font1Image[4], x, y);
+    return 0;
+  case '%':
+    PutImage(Font1Image[5], x, y);
+    return 0;
+  case '&':
+    PutImage(Font1Image[6], x, y);
+    return 0;
+  case '\'':
+    PutImage(Font1Image[7], x, y);
+    return 0;
+  case '(':
+    PutImage(Font1Image[8], x, y);
+    return 0;
+  case ')':
+    PutImage(Font1Image[9], x, y);
+    return 0;
+  case '*':
+    PutImage(Font1Image[10], x, y);
+    return 0;
+  case '+':
+    PutImage(Font1Image[11], x, y);
+    return 0;
+  case ',':
+    PutImage(Font1Image[12], x, y);
+    return 0;
+  case '-':
+    PutImage(Font1Image[13], x, y);
+    return 0;
+  case '.':
+    PutImage(Font1Image[14], x, y);
+    return 0;
+  case '/':
+    PutImage(Font1Image[15], x, y);
+    return 0;
+  case '0':
+    PutImage(Font2Image[0], x, y);
+    return 0;
+  case '1':
+    PutImage(Font2Image[1], x, y);
+    return 0;
+  case '2':
+    PutImage(Font2Image[2], x, y);
+    return 0;
+  case '3':
+    PutImage(Font2Image[3], x, y);
+    return 0;
+  case '4':
+    PutImage(Font2Image[4], x, y);
+    return 0;
+  case '5':
+    PutImage(Font2Image[5], x, y);
+    return 0;
+  case '6':
+    PutImage(Font2Image[6], x, y);
+    return 0;
+  case '7':
+    PutImage(Font2Image[7], x, y);
+    return 0;
+  case '8':
+    PutImage(Font2Image[8], x, y);
+    return 0;
+  case '9':
+    PutImage(Font2Image[9], x, y);
+    return 0;
+  case ':':
+    PutImage(Font2Image[10], x, y);
+    return 0;
+  case ';':
+    PutImage(Font2Image[11], x, y);
+    return 0;
+  case '<':
+    PutImage(Font2Image[12], x, y);
+    return 0;
+  case '=':
+    PutImage(Font2Image[13], x, y);
+    return 0;
+  case '>':
+    PutImage(Font2Image[14], x, y);
+    return 0;
+  case '?':
+    PutImage(Font2Image[15], x, y);
+    return 0;
+  case '@':
+    PutImage(Font3Image[0], x, y);
+    return 0;
+  case 'A':
+    PutImage(Font3Image[1], x, y);
+    return 0;
+  case 'B':
+    PutImage(Font3Image[2], x, y);
+    return 0;
+  case 'C':
+    PutImage(Font3Image[3], x, y);
+    return 0;
+  case 'D':
+    PutImage(Font3Image[4], x, y);
+    return 0;
+  case 'E':
+    PutImage(Font3Image[5], x, y);
+    return 0;
+  case 'F':
+    PutImage(Font3Image[6], x, y);
+    return 0;
+  case 'G':
+    PutImage(Font3Image[7], x, y);
+    return 0;
+  case 'H':
+    PutImage(Font3Image[8], x, y);
+    return 0;
+  case 'I':
+    PutImage(Font3Image[9], x, y);
+    return 0;
+  case 'J':
+    PutImage(Font3Image[10], x, y);
+    return 0;
+  case 'K':
+    PutImage(Font3Image[11], x, y);
+    return 0;
+  case 'L':
+    PutImage(Font3Image[12], x, y);
+    return 0;
+  case 'M':
+    PutImage(Font3Image[13], x, y);
+    return 0;
+  case 'N':
+    PutImage(Font3Image[14], x, y);
+    return 0;
+  case 'O':
+    PutImage(Font3Image[15], x, y);
+    return 0;
+  case 'P':
+    PutImage(Font4Image[0], x, y);
+    return 0;
+  case 'Q':
+    PutImage(Font4Image[1], x, y);
+    return 0;
+  case 'R':
+    PutImage(Font4Image[2], x, y);
+    return 0;
+  case 'S':
+    PutImage(Font4Image[3], x, y);
+    return 0;
+  case 'T':
+    PutImage(Font4Image[4], x, y);
+    return 0;
+  case 'U':
+    PutImage(Font4Image[5], x, y);
+    return 0;
+  case 'V':
+    PutImage(Font4Image[6], x, y);
+    return 0;
+  case 'W':
+    PutImage(Font4Image[7], x, y);
+    return 0;
+  case 'X':
+    PutImage(Font4Image[8], x, y);
+    return 0;
+  case 'Y':
+    PutImage(Font4Image[9], x, y);
+    return 0;
+  case 'Z':
+    PutImage(Font4Image[10], x, y);
+    return 0;
+  case '[':
+    PutImage(Font4Image[11], x, y);
+    return 0;
+  case '\\':
+    PutImage(Font4Image[12], x, y);
+    return 0;
+  case ']':
+    PutImage(Font4Image[13], x, y);
+    return 0;
+  case '^':
+    PutImage(Font4Image[14], x, y);
+    return 0;
+  case '_':
+    PutImage(Font4Image[15], x, y);
+    return 0;
+  case '`':
+    PutImage(Font5Image[0], x, y);
+    return 0;
+  case 'a':
+    PutImage(Font5Image[1], x, y);
+    return 0;
+  case 'b':
+    PutImage(Font5Image[2], x, y);
+    return 0;
+  case 'c':
+    PutImage(Font5Image[3], x, y);
+    return 0;
+  case 'd':
+    PutImage(Font5Image[4], x, y);
+    return 0;
+  case 'e':
+    PutImage(Font5Image[5], x, y);
+    return 0;
+  case 'f':
+    PutImage(Font5Image[6], x, y);
+    return 0;
+  case 'g':
+    PutImage(Font5Image[7], x, y);
+    return 0;
+  case 'h':
+    PutImage(Font5Image[8], x, y);
+    return 0;
+  case 'i':
+    PutImage(Font5Image[9], x, y);
+    return 0;
+  case 'j':
+    PutImage(Font5Image[10], x, y);
+    return 0;
+  case 'k':
+    PutImage(Font5Image[11], x, y);
+    return 0;
+  case 'l':
+    PutImage(Font5Image[12], x, y);
+    return 0;
+  case 'm':
+    PutImage(Font5Image[13], x, y);
+    return 0;
+  case 'n':
+    PutImage(Font5Image[14], x, y);
+    return 0;
+  case 'o':
+    PutImage(Font5Image[15], x, y);
+    return 0;
+  case 'p':
+    PutImage(Font6Image[0], x, y);
+    return 0;
+  case 'q':
+    PutImage(Font6Image[1], x, y);
+    return 0;
+  case 'r':
+    PutImage(Font6Image[2], x, y);
+    return 0;
+  case 's':
+    PutImage(Font6Image[3], x, y);
+    return 0;
+  case 't':
+    PutImage(Font6Image[4], x, y);
+    return 0;
+  case 'u':
+    PutImage(Font6Image[5], x, y);
+    return 0;
+  case 'v':
+    PutImage(Font6Image[6], x, y);
+    return 0;
+  case 'w':
+    PutImage(Font6Image[7], x, y);
+    return 0;
+  case 'x':
+    PutImage(Font6Image[8], x, y);
+    return 0;
+  case 'y':
+    PutImage(Font6Image[9], x, y);
+    return 0;
+  case 'z':
+    PutImage(Font6Image[10], x, y);
+    return 0;
+  case '{':
+    PutImage(Font6Image[11], x, y);
+    return 0;
+  case '|':
+    PutImage(Font6Image[12], x, y);
+    return 0;
+  case '}':
+    PutImage(Font6Image[13], x, y);
+    return 0;
+  case '~':
+    PutImage(Font6Image[14], x, y);
+    return 0;
+  default:
+    fprintf(stderr, "draw_char: unknown char found (\\x%x), ignoring", c);
+    return -1;
+  }
+  /* should not reach here */
+  return -2;
+}
+
