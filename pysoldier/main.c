@@ -1,5 +1,3 @@
-
-#include <config.h>
 #include <ctype.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -14,23 +12,9 @@
 #include <X11/Xlib.h>
 #include <X11/xpm.h>
 #include <X11/Xutil.h>
+#include <wait.h>
 
-
-#include "data.h"
-#include "xsoldier.h"
-#include "manage.h"
-#include "game.h"
-#include "player.h"
-#include "wait.h"
-#include "graphic.h"
-#include "input.h"
-#include "extern.h"
-#include "image.h"
-#include "common.h"
-#include "enemyshot.h"
-#include "callback.h"
-#include "enemy.h"
-#include "key.h"
+#include "pysoldier.h"
 
 
 static void init(void) {
