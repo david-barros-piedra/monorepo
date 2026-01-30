@@ -1,3 +1,5 @@
+#include "data.h"
+
 #include <ctype.h>
 #include <fcntl.h>
 #include <signal.h>
@@ -14,7 +16,357 @@
 #include <X11/Xutil.h>
 #include <wait.h>
 
-#include "pysoldier.h"
+typedef struct {
+    Pixmap pixmap;
+    Pixmap mask;
+    GC     maskgc;
+    int    width, height;
+} Image;
+
+extern void ReadFileToImage(const char *filename, Image **img);
+extern void PutImage(Image *img, int x, int y);
+extern void SplitImage(Image *img, Image ***imgs, int nsplit);
+extern void FreeImage(Image *img);
+extern void FreeImages(Image **imgs, int nimg);
+extern Image **ImageInit(const char *filename, int split);
+
+#define MaxStage 8
+#define ShotTiming 100
+#define MaxLevel 80
+
+#define FIRST1UP 200000
+#define EVERY1UP 200000
+
+/* attribute mask */
+#define MPlayer (1L<<0)
+#define MPShot  (1L<<1)
+#define MEnemy  (1L<<2)
+#define MEShot  (1L<<3)
+#define MItem   (1L<<4)
+
+/* death flag */
+typedef enum {NoneDel,NullDel,ZakoDel,BossDel} DelAtt;
+
+/* basic data of object */
+typedef struct {
+    int used;
+    int hitAtt;
+    int hitMask;
+    int Width,Height;
+    int HarfW,HarfH;
+    /* don't modify above */
+
+  /* shoot if shotTime >= ShotTiming */
+    int startTime;
+    int shotTime;
+
+  int kill;
+    int HP;
+    int Attack;
+    int Point;
+    DelAtt EnemyAtt;
+
+    int X,Y;
+    int oldX,oldY;
+    int inertX,inertY;
+    int Angle;
+    int Speed;
+    int Cnt[16];
+
+    int image;
+  int showDamegeTime;
+  int notShootingTime;
+  int shouldAct;
+} ObjData;
+
+/* graphic data of object */
+typedef struct {
+    Image **image;
+
+    int Width,Height;
+    int HarfW,HarfH;
+} GrpData;
+
+/* prototype of object data */
+typedef struct
+{
+    ObjData Data;
+    GrpData Grp;
+
+    DelAtt (*Action)(ObjData *my);
+    DelAtt (*Hit)(ObjData *my, ObjData *your);
+    void (*Realize)(ObjData *my, GrpData *grp);
+} CharObj;
+
+/* table of objects */
+typedef struct {
+    CharObj **player;
+    CharObj **enemy;
+
+    CharObj New;
+
+    int PlayerMax;
+    int PlayerNum;
+    int EnemyMax;
+    int EnemyNum;
+
+  /* frequently used objects */
+    CharObj EnemyShot;
+    CharObj Bomb;
+    CharObj LargeBomb;
+
+    int Level;
+    int Stage;
+    int Loop;
+    int Appear;
+
+    int StageEnemy;
+    int StageShotDown;
+    int ZakoApp;
+    int BossApp;
+    int BossKill;
+
+  int BossTime;
+  int flag_maxlevel;
+  int start_power;
+  int showShootDown;
+  int flag_nopausemessage;
+  int program_should_quit;
+} CharManage;
+/* this is global because we have only one table */
+
+typedef struct {
+    char name[16];
+    int score;
+    int stage;
+    int loop;
+} Record;
+
+typedef struct {
+    Record Rec[11];
+    int Ships;
+    int Percent;
+    int Next;
+} PlayerData;
+
+
+extern CharManage *NewManage(int playerMax, int enemyMax);
+extern void ClearManage(CharManage *manage_temp);
+extern void ResetManage(CharManage *manage_temp);
+extern void DeleteManage(CharManage *Del);
+
+extern int NewObj(int mask,
+		  DelAtt (*action)(ObjData *my),
+		  DelAtt (*hit)(ObjData *my, ObjData *your),
+		  void (*realize)(ObjData *my, GrpData *grp));
+extern void DelObj(CharObj *del);
+extern PlayerData *NewPlayerData(void);
+extern void ClearEnemyShotManage(CharManage *manage_temp);
+
+
+extern int mainLoop(void);
+
+extern void NewPlayer(int x, int y);
+extern void RestartPlayer(int x, int y);
+extern DelAtt PlayerAction(ObjData *my);
+extern DelAtt PlayerHit(ObjData *my, ObjData *your);
+
+extern void PlayerShot1(int x, int y, int speed, int angle, int attack);
+extern void PlayerShot2(int x, int y, int speed, int angle);
+extern DelAtt PlayerShotAct1(ObjData *my);
+extern DelAtt PlayerShotHit1(ObjData *my, ObjData *your);
+extern void PlayerShot3(int x, int y, int inertX, int attack);
+extern DelAtt PlayerShotAct3(ObjData *my);
+extern DelAtt PlayerShotHit3(ObjData *my, ObjData *your);
+extern void PlayerLosePower(void);
+
+extern int graphic_init(void);
+extern int clear_window(void);
+extern int redraw_window(void);
+extern int graphic_finish(void);
+extern int draw_string(int x, int y, const char *string, int length);
+extern int draw_char(int x, int y, int c);
+
+extern int input_init(void);
+extern int event_handle(void);
+extern int event_handle_opening(void);
+extern int event_handle_ending(void);
+
+
+/* wait by signal */
+int signal_delivered;
+int waittime;
+
+
+/* for XWindow */
+Display *dpy;
+Colormap cmap;
+Window   root;
+Window   win;
+Pixmap   WorkPixmap;
+XEvent   event;
+
+Font     font;
+GC       FontGC;
+GC       BackGC;
+GC       FillGC; /* GC for debugging rectangles */
+XColor   black;
+XColor   white;
+
+
+
+int      keymask;
+int      joymask;
+
+char *upKey;
+char *downKey;
+char *leftKey;
+char *rightKey;
+char *shotKey;
+char *spdupKey;
+char *spdwnKey;
+char *pauseKey;
+char *quitKey;
+
+/* character management */
+CharManage *manage;
+
+/* player data (score.. stage...) */
+PlayerData *player;
+
+/* field */
+#define  FieldW (500)
+#define  FieldH (650)
+
+/* star */
+int StarPtn1;
+int StarPtn2;
+
+/* image */
+Image **PlayerImage;
+Image **PShot1Image;
+Image **PShot2Image;
+Image **PShot3Image;
+
+Image **EShotImage;
+Image **ELaserImage;
+Image **EMissileImage;
+Image **EBoundImage;
+Image **ERingImage;
+
+Image **BombImage;
+Image **LargeBombImage;
+
+Image **Enemy1Image;
+Image **Enemy2Image;
+Image **Enemy3Image;
+Image **Enemy4Image;
+Image **Enemy5Image;
+Image **Enemy6Image;
+Image **Enemy7Image;
+
+Image **Boss1Image;
+Image **Boss2Image;
+Image **Boss3Image;
+Image **Boss4Image;
+Image **Boss5Image;
+Image **Boss6Image;
+Image **Boss7Image;
+
+Image **ItemImage;
+
+
+int integerrng(void) ;
+extern void NewBomb(int x, int y);
+extern void NewLargeBomb(int x, int y);
+extern DelAtt BombAct(ObjData *my);
+extern int GetDirection(int mx, int my, int sx, int sy);
+
+double dsin(int theta);
+int isin(int theta);
+#define dcos(i) dsin(i+90)
+#define icos(i) isin(i+90)
+
+
+
+extern void ShotToAngle(int x, int y, int angle, int speed);
+extern void ShotToPoint(int x1, int y1, int x2, int y2, int speed);
+extern DelAtt EnemyShotAct(ObjData *my);
+extern int RingToAngle(int x, int y, int angle, int speed);
+extern int RingToPoint(int x1, int y1, int x2, int y2, int speed);
+extern int HomingShot(int x, int y, int ix, int iy);
+extern DelAtt HomingAct(ObjData *my);
+extern int LaserShot(int x, int y, int speed);
+extern DelAtt EnemyLaserAct(ObjData *my);
+extern int BoundShot(int x, int y, int ix, int iy, int bound);
+extern DelAtt BoundShotAct(ObjData *my);
+
+
+extern DelAtt NullAct(ObjData *my);
+
+extern DelAtt NullHit(ObjData *my, ObjData *your);
+extern DelAtt NullDelHit(ObjData *my, ObjData *your);
+extern DelAtt DeleteHit(ObjData *my, ObjData *your);
+extern DelAtt DamageHit(ObjData *my, ObjData *your);
+extern DelAtt LargeDamageHit(ObjData *my, ObjData *your);
+
+extern void NullReal(ObjData *my, GrpData *grp);
+extern void DrawRec(ObjData *my, GrpData *grp);
+extern void DrawImage(ObjData *my, GrpData *grp);
+
+
+extern int NewEnemy1(int x, int y);
+extern DelAtt EnemyAct1(ObjData *my);
+extern DelAtt EnemyHit1(ObjData *my, ObjData *your);
+
+extern int NewEnemy2(int x, int y);
+extern DelAtt EnemyAct2(ObjData *my);
+extern int NewEnemy3(int x, int y);
+extern DelAtt EnemyAct3(ObjData *my);
+extern int NewEnemy4(int x, int y);
+extern DelAtt EnemyAct4(ObjData *my);
+extern int NewEnemy5(int x, int y);
+extern DelAtt EnemyAct5(ObjData *my);
+extern int NewEnemy6(int x, int y);
+extern DelAtt EnemyAct6(ObjData *my);
+extern int NewEnemy7(int x, int y);
+extern DelAtt EnemyAct7(ObjData *my);
+extern int NewEnemy8(int x, int y);
+extern DelAtt EnemyAct8(ObjData *my);
+extern int NewEnemy9(int x, int y);
+extern DelAtt EnemyAct9(ObjData *my);
+extern int NewEnemy10(int x, int y);
+DelAtt EnemyAct10(ObjData *my);
+
+
+/* definitions of keys */
+
+#define UpKey    XK_Up
+#define DownKey  XK_Down
+#define LeftKey  XK_Left
+#define RightKey XK_Right
+
+#define ShotKey  XK_Shift_L
+
+#define SpeedUPKey   XK_a
+#define SpeedDOWNKey XK_s
+
+#define PauseKey      XK_p
+#define QuitKey      XK_q
+
+
+
+
+/* don't touch them */
+#define Up    (1L<<0)
+#define Down  (1L<<1)
+#define Left  (1L<<2)
+#define Right (1L<<3)
+#define Shot  (1L<<4)
+#define SpeedUP   (1L<<5)
+#define SpeedDOWN (1L<<6)
+#define Pause (1L<<7)
+#define Quit (1L<<8)
 
 
 static void init(void) {
