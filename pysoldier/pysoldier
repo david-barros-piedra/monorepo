@@ -8,7 +8,7 @@ def main():
   from fileinput import input
 
   with open("checksums") as f:
-    checksums = [ int(line.strip(),16) for line in f ][:1000]
+    checksums = [ int(line.strip(),16) for line in f ]
 
   for  line, checksum in zip(input(),checksums):
      buffer =  bytes.fromhex( line.strip() )
