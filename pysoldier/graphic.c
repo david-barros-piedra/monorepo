@@ -18,7 +18,6 @@
 
 #include "extern.h"
 
-static int canvas[FieldH][FieldW];
 
 #if 0
 static GC FontGC;
@@ -164,11 +163,10 @@ int redraw_window(void) {
   XFlush(dpy);
   XSync(dpy,False);
 
-
-
+  XImage* image = XGetImage(dpy,WorkPixmap,0,0,FieldW,FieldH,AllPlanes,ZPixmap);
   for(int row=0;row<FieldH;row++){
     for(int col=0;col<FieldW;col++){
-      printf( "%06x", canvas[ row ][ col ] );
+      printf( "%06lx", XGetPixel(image,col,row) );
     }
   }
   printf("\n");

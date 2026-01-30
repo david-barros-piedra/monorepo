@@ -8,11 +8,11 @@ def main():
   from fileinput import input
 
   with open("checksums") as f:
-    checksums = [ int(line.strip(),16) for line in f ]
+    checksums = [ int(line.strip(),16) for line in f ][:1000]
 
   for  line, checksum in zip(input(),checksums):
      buffer =  bytes.fromhex( line.strip() )
-     #assert  adler32( buffer ) == checksum
+     assert  adler32( buffer ) == checksum
      image = np.frombuffer( buffer,dtype=np.uint8 ).reshape((-1,500,3))
      imshow("",cvtColor(image,  COLOR_RGB2BGR))
      if ord('q')==waitKey(1): return

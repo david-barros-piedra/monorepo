@@ -10,7 +10,6 @@
 #include "xsoldier.h"
 #include "extern.h"
 
-extern int canvas[FieldH][FieldW];
 
 static const char *XpmStatusToString(int status);
 
