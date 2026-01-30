@@ -54,7 +54,7 @@ static int perfect_bonus(int loop, int stage);
 
 #include "data.h"
 
-int mainLoop(void) {
+int mainLoop( void ) {
     int obj; /* loop counter */
 
     int ocheck; /* counter for already checked objects */
@@ -92,37 +92,11 @@ int mainLoop(void) {
     /* add the player ship to the table */
     NewPlayer(FieldW/2,FieldH - 32);
     XFlush(dpy);
-    int record_data_index = 0;
-    while (1) {
-        if ( waittime && ( signal_delivered == 0 ) ) { pause(); }
-        signal_delivered = 0;
-        if ( event_handle() == 0 ) { return 0; }
-        keymask = record_data[record_data_index++];
-        if(record_data_index >= RECORD_DATA_SIZE){
-          printf("GOOD BYE!!!!!\n");
-          return 0;
-        }
-        printf("%x\n",keymask);
+    for ( int record_data_index = 0; record_data_index<RECORD_DATA_SIZE; record_data_index++ ) {
+        keymask = record_data[record_data_index];
 
-	if (keymask & Pause)
-	{
-          if (manage->flag_nopausemessage == False)
-          {
-            draw_string(235, 280, "Pause", strlen("Pause"));
-            draw_string(180, 300, "Press [", strlen("Press ["));
-            draw_string(230, 300, pauseKey, strlen(pauseKey));
-            draw_string(245, 300, "] to resume game",
-                        strlen("] to resume game"));
-          }
-          redraw_window();
-          continue;
-	}
-
-	if (manage->Stage>MaxStage && manage->Appear>0)
-	    break;
-	
-	if (manage->player[0]->Data.used == False)
-	{
+	if ( manage->Stage>MaxStage && manage->Appear>0) { break; }
+	if ( manage->player[0]->Data.used == False ){
           /* the player is killed */
 	    player->Rec[0].loop = manage->Loop;
 	    player->Rec[0].stage = manage->Stage;

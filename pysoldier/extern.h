@@ -64,8 +64,8 @@ EXTERN CharManage *manage;
 EXTERN PlayerData *player;
 
 /* field */
-EXTERN int FieldW;
-EXTERN int FieldH;
+#define  FieldW (500)
+#define  FieldH (650)
 
 /* star */
 EXTERN int StarPtn1;

@@ -17,6 +17,9 @@
 #include "xsoldier.h"
 
 #include "extern.h"
+
+static int canvas[FieldH][FieldW];
+
 #if 0
 static GC FontGC;
 static GC BackGC;
@@ -43,8 +46,6 @@ int graphic_init( void ) {
   XColor blackTrue;
   XColor whiteTrue;
   XSizeHints sh;
-  FieldW  = 500;
-  FieldH  = 650;
 
 
   dpy = XOpenDisplay('\0');
@@ -78,15 +79,8 @@ int graphic_init( void ) {
   XSelectInput(dpy, win, ExposureMask|EnterWindowMask|KeyPressMask|KeyReleaseMask);
 
   WorkPixmap = XCreatePixmap(dpy, win, FieldW, FieldH, DefaultDepth(dpy, 0));
-  /*
-  font       = XLoadFont(dpy,"-adobe-helvetica-bold-r-normal--12-120-75-75-p-70-iso8859-1");
-  */
   FontGC     = XCreateGC(dpy,root,0,0);
   XSetGraphicsExposures(dpy,FontGC,False);
-  /*
-  XSetForeground(dpy,FontGC,white.pixel);
-  XSetFont(dpy,FontGC,font);
-  */
 
   BackGC       = XCreateGC(dpy,WorkPixmap,0,0);
   XSetGraphicsExposures(dpy,BackGC,False);
@@ -97,43 +91,38 @@ int graphic_init( void ) {
   XSetForeground(dpy,FillGC,white.pixel);
 
 
-  PlayerImage = ImageInit(PIXMAP "/Player.xpm" GZ,6);
-  PShot1Image  = ImageInit(PIXMAP "/PlayerShot1.xpm" GZ,2);
-  PShot2Image  = ImageInit(PIXMAP "/PlayerShot2.xpm" GZ,2);
-  PShot3Image  = ImageInit(PIXMAP "/PlayerShot3.xpm" GZ,3);
+  PlayerImage = ImageInit( "Player.xpm",6);
+  PShot1Image  = ImageInit( "PlayerShot1.xpm",2);
+  PShot2Image  = ImageInit( "PlayerShot2.xpm",2);
+  PShot3Image  = ImageInit( "PlayerShot3.xpm",3);
 
-  EShotImage  = ImageInit(PIXMAP "/EnemyShot.xpm" GZ,4);
-  ELaserImage  = ImageInit(PIXMAP "/EnemyLaser.xpm" GZ,1);
-  EMissileImage  = ImageInit(PIXMAP "/EnemyMiss.xpm" GZ,8);
-  EBoundImage = ImageInit(PIXMAP "/EnemyBound.xpm" GZ,8);
-  ERingImage = ImageInit(PIXMAP "/EnemyRing.xpm" GZ,4);
+  EShotImage  = ImageInit( "EnemyShot.xpm",4);
+  ELaserImage  = ImageInit( "EnemyLaser.xpm",1);
+  EMissileImage  = ImageInit( "EnemyMiss.xpm",8);
+  EBoundImage = ImageInit( "EnemyBound.xpm",8);
+  ERingImage = ImageInit( "EnemyRing.xpm",4);
 
-  BombImage   = ImageInit(PIXMAP "/ExpSmall.xpm" GZ,5);
-  LargeBombImage= ImageInit(PIXMAP "/ExpLarge.xpm" GZ,5);
+  BombImage   = ImageInit( "ExpSmall.xpm",5);
+  LargeBombImage= ImageInit( "ExpLarge.xpm",5);
 
-  Enemy1Image = ImageInit(PIXMAP "/Enemy1.xpm" GZ,8);
-  Enemy2Image = ImageInit(PIXMAP "/Enemy2.xpm" GZ,8);
-  Enemy3Image = ImageInit(PIXMAP "/Enemy3.xpm" GZ,8);
-  Enemy4Image = ImageInit(PIXMAP "/Enemy4.xpm" GZ,8);
-  Enemy5Image = ImageInit(PIXMAP "/Enemy5.xpm" GZ,4);
-  Enemy6Image = ImageInit(PIXMAP "/Enemy6.xpm" GZ,6);
-  Enemy7Image = ImageInit(PIXMAP "/Enemy7.xpm" GZ,1);
+  Enemy1Image = ImageInit( "Enemy1.xpm",8);
+  Enemy2Image = ImageInit( "Enemy2.xpm",8);
+  Enemy3Image = ImageInit( "Enemy3.xpm",8);
+  Enemy4Image = ImageInit( "Enemy4.xpm",8);
+  Enemy5Image = ImageInit( "Enemy5.xpm",4);
+  Enemy6Image = ImageInit( "Enemy6.xpm",6);
+  Enemy7Image = ImageInit( "Enemy7.xpm",1);
 
-  Boss1Image = ImageInit(PIXMAP "/Boss1.xpm" GZ,1);
-  Boss2Image = ImageInit(PIXMAP "/Boss2.xpm" GZ,1);
-  Boss3Image = ImageInit(PIXMAP "/Boss3.xpm" GZ,1);
-  Boss4Image = ImageInit(PIXMAP "/Boss4.xpm" GZ,1);
-  Boss5Image = ImageInit(PIXMAP "/Boss5.xpm" GZ,1);
-  Boss6Image = ImageInit(PIXMAP "/Boss6.xpm" GZ,2);
-  Boss7Image = ImageInit(PIXMAP "/Boss7.xpm" GZ,1);
+  Boss1Image = ImageInit( "Boss1.xpm",1);
+  Boss2Image = ImageInit( "Boss2.xpm",1);
+  Boss3Image = ImageInit( "Boss3.xpm",1);
+  Boss4Image = ImageInit( "Boss4.xpm",1);
+  Boss5Image = ImageInit( "Boss5.xpm",1);
+  Boss6Image = ImageInit( "Boss6.xpm",2);
+  Boss7Image = ImageInit( "Boss7.xpm",1);
 
-  ItemImage = ImageInit(PIXMAP "/Item.xpm" GZ,4);
+  ItemImage = ImageInit( "Item.xpm",4);
     
-  /* initialize stars */
-  //InitStarModule(FieldW,FieldH);
-  //StarPtn1 = CreateStar(PIXMAP "/Star1.xpm" GZ,4,5,5);
-  //StarPtn2 = CreateStar(PIXMAP "/Star2.xpm" GZ,4,10,10);
-
   /* initialize font */
   /* explanation of font images
    *  14 * 7
@@ -154,12 +143,12 @@ int graphic_init( void ) {
    * .>N^n~ 210
    * /?O_o  224
    */
-  Font1Image = ImageInit(PIXMAP "/font1.xpm" , 16);
-  Font2Image = ImageInit(PIXMAP "/font2.xpm" , 16);
-  Font3Image = ImageInit(PIXMAP "/font3.xpm" , 16);
-  Font4Image = ImageInit(PIXMAP "/font4.xpm" , 16);
-  Font5Image = ImageInit(PIXMAP "/font5.xpm" , 16);
-  Font6Image = ImageInit(PIXMAP "/font6.xpm" , 16);
+  Font1Image = ImageInit( "font1.xpm" , 16);
+  Font2Image = ImageInit( "font2.xpm" , 16);
+  Font3Image = ImageInit( "font3.xpm" , 16);
+  Font4Image = ImageInit( "font4.xpm" , 16);
+  Font5Image = ImageInit( "font5.xpm" , 16);
+  Font6Image = ImageInit( "font6.xpm" , 16);
 
   return 0;
 }
@@ -174,6 +163,16 @@ int redraw_window(void) {
   XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FieldW,FieldH,0,0);
   XFlush(dpy);
   XSync(dpy,False);
+
+
+
+  for(int row=0;row<FieldH;row++){
+    for(int col=0;col<FieldW;col++){
+      printf( "%06x", canvas[ row ][ col ] );
+    }
+  }
+  printf("\n");
+
   return 0;
 }
 
@@ -227,13 +226,8 @@ int graphic_finish(void) {
 }
 
 
-int draw_string(int x, int y, const char *string, int length)
-{
+int draw_string(int x, int y, const char *string, int length) {
   int i;
-  /*
-  XDrawString(dpy, WorkPixmap, FontGC, x, y, string, length);
-  */
-  /* XDrawString seens to have its own origin */
   y -= 7;
   for (i = 0; (i < length) && (string[i] != '\0'); i++)
   {
@@ -245,18 +239,11 @@ int draw_string(int x, int y, const char *string, int length)
 }
 
 /* return 0 on success, negative value on error */
-int draw_char(int x, int y, int c)
-{
-  if (!isprint(c))
-  {
-    fprintf(stderr, "draw_char: unprintable char found (\\x%x), "
-            "replacing it with ?\n", c);
-    c = '?';
-  }
+int draw_char(int x, int y, int c) {
+  if (!isprint(c)) { c = '?'; }
 
   /* don't assume ASCII */
-  switch (c)
-  {
+  switch ( c ) {
   case ' ':
     /* do nothing */
     return 0;

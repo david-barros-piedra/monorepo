@@ -9,7 +9,6 @@ typedef struct {
     int    width, height;
 } Image;
 
-
 extern void ReadFileToImage(const char *filename, Image **img);
 extern void PutImage(Image *img, int x, int y);
 extern void SplitImage(Image *img, Image ***imgs, int nsplit);
@@ -17,10 +16,5 @@ extern void FreeImage(Image *img);
 extern void FreeImages(Image **imgs, int nimg);
 extern Image **ImageInit(const char *filename, int split);
 
-#ifdef GZIP
- #define GZ ".gz"
-#else
- #define GZ
-#endif
 
 #endif /* IMAGE_H_INCLUDE */

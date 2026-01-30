@@ -24,33 +24,10 @@
 #define EXTERN_DEF
 #include "extern.h"
 
-
-static void sig_handle(int arg) { signal_delivered = 1; }
-
 static void init(void) {
-    struct itimerval value, ovalue;
-    struct sigaction sig_act;
-
-    /* set wait */
-    signal_delivered = 1;
-
-    waittime = 35000;
-
-    memset(&sig_act, 0, sizeof(sig_act));
-    sig_act.sa_handler = sig_handle;
-    sigaction(SIGALRM, &sig_act, 0);
-    value.it_interval.tv_sec = 0;
-    value.it_interval.tv_usec = waittime;
-    value.it_value.tv_sec = 0;
-    value.it_value.tv_usec = waittime;
-    setitimer(ITIMER_REAL, &value, &ovalue);
-
-    FieldW  = 500;
-    FieldH  = 650;
-
-    graphic_init();
-    input_init();
-    srand48(1234);
+  graphic_init();
+  input_init();
+  srand48(1234);
 }
 
 int main(int argc, char *argv[]) {

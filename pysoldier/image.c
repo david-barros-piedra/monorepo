@@ -10,6 +10,8 @@
 #include "xsoldier.h"
 #include "extern.h"
 
+extern int canvas[FieldH][FieldW];
+
 static const char *XpmStatusToString(int status);
 
 static const char *XpmStatusToString(int status){
@@ -142,10 +144,10 @@ void FreeImages(Image **imgs, int nimg) {
 }
 
 Image **ImageInit(const char *filename, int split) {
-  Image *Digit;
-  Image **Digits;
+  Image*  Digit;
+  Image** Digits;
   Digit = (Image *)malloc(sizeof(Image));
-  ReadFileToImage(filename,&Digit);
+  ReadFileToImage( filename,&Digit);
   SplitImage(Digit,&Digits,split);
   FreeImage(Digit);
   return Digits;
