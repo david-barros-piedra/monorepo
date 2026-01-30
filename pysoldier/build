@@ -2,9 +2,7 @@
 
 set -e
 
-rm -f  /tmp/*.o /tmp/xsoldier
-gcc -DHAVE_CONFIG_H -I.  -DDATADIR=\"/usr/local/share\" -DLOCALSTATEDIR=\"/usr/local/var\"    -Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -Winline -pedantic -Wno-long-long -g -O2 -c -o /tmp/input.o input.c
-gcc -DHAVE_CONFIG_H -I.  -DDATADIR=\"/usr/local/share\" -DLOCALSTATEDIR=\"/usr/local/var\"    -Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -Winline -pedantic -Wno-long-long -g -O2 -c -o /tmp/main.o main.c
-gcc -DHAVE_CONFIG_H -I.  -DDATADIR=\"/usr/local/share\" -DLOCALSTATEDIR=\"/usr/local/var\"    -Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -Winline -pedantic -Wno-long-long -g -O2 -c -o /tmp/manage.o manage.c
-gcc   -Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations -Wnested-externs -Winline -pedantic -Wno-long-long -g -O2   -o /tmp/xsoldier /tmp/*.o  -lSM -lICE -lX11 -lXpm  
-/tmp/xsoldier | ./pysoldier
+
+export WARNINGS='-Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings -Wstrict-prototypes -Wmissing-prototypes -Wmissing-declarations'
+gcc -I. $WARNINGS -Wnested-externs -Winline -pedantic -Wno-long-long -g -O2  -o xsoldier main.c  -lSM -lICE -lX11 -lXpm
+./xsoldier | ./pysoldier
