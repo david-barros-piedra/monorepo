@@ -1,3 +1,7 @@
+
+#define PY_SSIZE_T_CLEAN
+#include <python3.10/Python.h>
+
 #include "data.h"
 
 #include <ctype.h>
@@ -14,6 +18,9 @@
 #include <X11/xpm.h>
 #include <X11/Xutil.h>
 #include <wait.h>
+
+#define NPY_NO_DEPRECATED_API NPY_1_7_API_VERSION
+#include <numpy/ndarrayobject.h>
 
 /* definitions of keys */
 #define UpKey    XK_Up
@@ -57,23 +64,253 @@
 #define icos(i) isin(i+90)
 
 
-class Image {
+/* for XWindow */
+Display *dpy;
+Colormap cmap;
+Window   root;
+Window   win;
+Pixmap   WorkPixmap;
+XEvent   event;
+
+Font     font;
+GC       BackGC;
+GC       FillGC; /* GC for debugging rectangles */
+XColor   black;
+XColor   white;
+
+
+
+int      keymask;
+int      joymask;
+
+char *upKey;
+char *downKey;
+char *leftKey;
+char *rightKey;
+char *shotKey;
+char *spdupKey;
+char *spdwnKey;
+char *pauseKey;
+char *quitKey;
+
+
+class Globals {
   public:
+    Globals(){
+      this->start_python();
+    }
+
+    int start_python(){
+      Py_Initialize();
+      import_array();
+
+      PyRun_SimpleString("import sys\nsys.path.append('')\n");
+      this->pysoldier_module = PyImport_Import(PyUnicode_FromString("pysoldier"));
+      if ( this->pysoldier_module == NULL){
+        PyErr_Print();
+        return 0;
+      }
+
+      this->draw_function = PyObject_GetAttrString( this->pysoldier_module, (char*)"draw");
+      if ( this->draw_function == NULL){
+        PyErr_Print();
+        return 0;
+      }
+      this->process_function = PyObject_GetAttrString( this->pysoldier_module, (char*)"process");
+      if ( this->process_function == NULL){
+        PyErr_Print();
+        return 0;
+      }
+      npy_intp m = FIELD_WIDTH*FIELD_HEIGHT*3;
+      this->process_args = PyTuple_Pack( 0, PyArray_SimpleNewFromData(1,&m,NPY_UINT8, this->shared_buffer ) );
+      return 0;
+    }
+
+    ~Globals(){
+      fprintf(stderr,"cleaning globals.\n");
+      Py_Finalize();
+    }
+
+  GC FontGC;
+
+  int canvas[ FIELD_HEIGHT ][ FIELD_WIDTH ];
+  unsigned char shared_buffer[ FIELD_HEIGHT * FIELD_WIDTH * 3 ];
+  PyObject* pysoldier_module;
+  PyObject* draw_function;
+  PyObject* process_function;
+  PyObject* process_args;
+
+  int getPixel(int row, int col){
+    int offset = ( row*FIELD_WIDTH+col)*3;
+    int pixel = 0;
+    for (int i=0;i<3;i++){
+      pixel = ( pixel << 8 ) | this->shared_buffer[ offset + i ];
+    }
+    return pixel;
+  }
+
+  void setPixel(int row, int col, int pixel){
+    int offset = ( row*FIELD_WIDTH+col)*3;
+    this->shared_buffer[ offset + 2 ] = (unsigned char) ( pixel >>  0 );
+    this->shared_buffer[ offset + 1 ] = (unsigned char) ( pixel >>  8 );
+    this->shared_buffer[ offset + 0 ] = (unsigned char) ( pixel >> 16 );
+  }
+
+};
+
+Globals* globals;
+
+class Image {
+  private:
     Pixmap pixmap;
     Pixmap mask;
     GC     maskgc;
-    int    width, height;
+    int    width; 
+    int    height;
+    int    offset=0;
+    int*   canvas_data = NULL;
+    char   name[100];
 
-    static Image* ReadFileToImage( const char *filename );
+  public:
+    int getHeight() { return this->height; }
+    int getWidth () { return this->width;  }
+    Image** SplitImage(int nsplit) {
+      int split_width  = this->width ;
+      int split_height = this->height / nsplit;
 
-    Image** SplitImage(int nsplit);
+      GC gc8 = XCreateGC( dpy, this->pixmap, 0L, NULL );
+      GC gc1 = XCreateGC( dpy, this->mask,   0L, NULL );
+
+      XSetGraphicsExposures(dpy, gc8, False);
+      XSetGraphicsExposures(dpy, gc1, False);
+
+      Image** images = ( Image** )malloc(sizeof(Image*)*nsplit);
+
+
+      for (int i=0; i<nsplit; i++) {
+        images[i] = new Image();
+        Image* image = images[i];
+        strcpy(image->name,this->name);
+
+	int x = 0;
+	int y = split_height * i;
+
+	image->pixmap = XCreatePixmap( dpy, RootWindow(dpy,0), split_width, split_height, DefaultDepth( dpy, 0 ) );
+	XCopyArea( dpy, this->pixmap, image->pixmap, gc8, x, y, split_width, split_height, 0, 0 );
+
+	image->mask = XCreatePixmap( dpy, RootWindow( dpy, 0 ), split_width, split_height, 1 );
+	XCopyArea( dpy, this->mask, image->mask, gc1, x, y, split_width, split_height, 0, 0 );
+
+	image->maskgc = XCreateGC( dpy, WorkPixmap, 0, 0 );
+	XSetClipMask( dpy, image->maskgc, image->mask );
+	image->width  = split_width;
+	image->height = split_height;
+        image->offset = y;
+      }
+
+      XFreeGC( dpy, gc8 );
+      XFreeGC( dpy, gc1 );
+      XFlush( dpy );
+      return images;
+  }
+
+  Image() {}
+
+  ~Image() {
+    XFreePixmap(dpy, this->pixmap);
+    XFreePixmap(dpy, this->mask);
+    XFreeGC(dpy, this->maskgc);
+  }
+
+  Image( const char *filename ) {
+    strcpy(this->name,filename);
+    this->name[strlen(filename)-4]='\0';
+    Image* image = this;
+    XpmAttributes att;
+    att.valuemask = XpmColormap;
+    att.x_hotspot = 0U;
+    att.y_hotspot = 0U;
+    att.depth     = 8U;
+    att.colormap  = cmap;
+    int status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &(image->pixmap), &(image->mask), &att);
+    if (status != XpmSuccess) {
+	fprintf(stderr, " [file error] can not read %s\n", filename);
+	fflush(stderr);
+	exit(1);
+    }
+    image->width  = att.width;
+    image->height = att.height;
+
+    if ( image->mask != None ) { image->maskgc = XCreateGC(dpy,image->mask,0,0); }
+    else { fprintf(stderr, "[pixmap error] clip_mask is None!\n"); }
+
+    XpmFreeAttributes(&att);
+  }
+
+  void drawImage(int x, int y){
+    PyObject* ans =  PyObject_CallObject(
+      globals->draw_function,
+      PyTuple_Pack( 5,
+        PyUnicode_FromString(this->name),
+        PyLong_FromLong(x),
+        PyLong_FromLong(y),
+        PyLong_FromLong(this->offset),
+        PyLong_FromLong(this->height)
+      )
+    );
+    if (ans == NULL){
+      PyErr_Print();
+      exit(0);
+    }
+
+    XSetClipOrigin( dpy, this->maskgc, x, y );
+    XCopyArea( dpy, this->pixmap, WorkPixmap, this->maskgc, 0, 0, this->width, this->height, x, y );
+  }
 
 } ;
 
+
+/* image */
+Image** PlayerImage;
+Image** PShot1Image;
+Image** PShot2Image;
+Image** PShot3Image;
+
+Image** EShotImage;
+Image** ELaserImage;
+Image** EMissileImage;
+Image** EBoundImage;
+Image** ERingImage;
+
+Image** BombImage;
+Image** LargeBombImage;
+
+Image** EnemyImage[7];
+Image** BossImage[7];
+
+Image** ItemImage;
+
+
 void PutImage(Image *img, int x, int y);
-void FreeImage(Image *img);
+void PutImage(Image *img, int x, int y) {
+  img->drawImage( x, y );
+}
+
+
 void FreeImages(Image **imgs, int nimg);
+void FreeImages(Image **imgs, int nimg) {
+  while (nimg) { delete  imgs[ --nimg ] ; }
+  free( imgs );
+}
+
 Image **ImageInit(const char *filename, int split);
+Image **ImageInit(const char *filename, int split) {
+  //Image* Digit = new Image( filename );
+  Image Digit( filename );
+  Image** Digits = Digit.SplitImage(split);
+  //delete Digit;
+  return Digits;
+}
 
 
 /* death flag */
@@ -211,10 +448,8 @@ DelAtt PlayerShotHit3(ObjData *my, ObjData *your);
 void PlayerLosePower(void);
 
 int graphic_init(void);
-int clear_window(void);
-int redraw_window(void);
 int graphic_finish(void);
-int draw_string(int x, int y, const char *string, int length);
+void draw2_string(int x, int y, const char *string);
 int draw_char(int x, int y, int c);
 
 int input_init(void);
@@ -228,35 +463,6 @@ int signal_delivered;
 int waittime;
 
 
-/* for XWindow */
-Display *dpy;
-Colormap cmap;
-Window   root;
-Window   win;
-Pixmap   WorkPixmap;
-XEvent   event;
-
-Font     font;
-GC       FontGC;
-GC       BackGC;
-GC       FillGC; /* GC for debugging rectangles */
-XColor   black;
-XColor   white;
-
-
-
-int      keymask;
-int      joymask;
-
-char *upKey;
-char *downKey;
-char *leftKey;
-char *rightKey;
-char *shotKey;
-char *spdupKey;
-char *spdwnKey;
-char *pauseKey;
-char *quitKey;
 
 /* character management */
 CharManage *manage;
@@ -268,32 +474,6 @@ PlayerData *player;
 int StarPtn1;
 int StarPtn2;
 
-/* image */
-Image** PlayerImage;
-Image** PShot1Image;
-Image** PShot2Image;
-Image** PShot3Image;
-
-Image** EShotImage;
-Image** ELaserImage;
-Image** EMissileImage;
-Image** EBoundImage;
-Image** ERingImage;
-
-Image** BombImage;
-Image** LargeBombImage;
-
-Image** EnemyImage[7];
-
-Image** Boss1Image;
-Image** Boss2Image;
-Image** Boss3Image;
-Image** Boss4Image;
-Image** Boss5Image;
-Image** Boss6Image;
-Image** Boss7Image;
-
-Image** ItemImage;
 
 
 int integerrng(void) ;
@@ -410,6 +590,9 @@ static void init(void) {
 }
 
 int main(int argc, char *argv[]) {
+
+  globals = new Globals();
+
   manage = NULL;
   player = NewPlayerData();
   init();
@@ -471,6 +654,9 @@ static DelAtt BossAct8_charge_shot(ObjData *my);
 static DelAtt BossAct8_n_way_shot(ObjData *my);
 static void BossAct8_next(ObjData *my, int span);
 
+
+
+
 /* definition of objects
  * - initialization function
  * - action function
@@ -502,7 +688,7 @@ int NewBoss1(void)
     manage->New.Data.Cnt[5] = 0;  /* laser counter */
     manage->New.Data.Cnt[6] = 0;  /* normal shot counter */
 
-    manage->New.Grp.image = Boss1Image;
+    manage->New.Grp.image = BossImage[0];
     return NewObj(MEnemy,BossAct1,BossHit1,DrawImage);
 }
 
@@ -632,7 +818,7 @@ int NewBoss2(void)
     manage->New.Data.Cnt[4] = 0;
     manage->New.Data.Cnt[5] = 0; /* normal shot counter */
     
-    manage->New.Grp.image = Boss2Image;
+    manage->New.Grp.image = BossImage[1];
     return NewObj(MEnemy,BossAct2,BossHit1,DrawImage);
 }
 
@@ -757,7 +943,7 @@ int NewBoss3(void)
     manage->New.Data.Cnt[5] = 0;  /* laser counter */
     manage->New.Data.Cnt[6] = 0; /* missile counter */
 
-    manage->New.Grp.image = Boss3Image;
+    manage->New.Grp.image = BossImage[2];
     return NewObj(MEnemy,BossAct3,BossHit1,DrawImage);
 }
 
@@ -854,7 +1040,7 @@ int NewBoss4(void)
     manage->New.Data.Cnt[4] = 0; /* y move */
     manage->New.Data.Cnt[5] = 0;  /* laser counter */
 
-    manage->New.Grp.image = Boss4Image;
+    manage->New.Grp.image = BossImage[3];
     return NewObj(MEnemy,BossAct4,BossHit1,DrawImage);
 }
 
@@ -938,7 +1124,7 @@ int NewBoss5(void)
     manage->New.Data.Cnt[5] = 0;  /* shot counter */
     manage->New.Data.Cnt[6] = 0;  /* angle counter */
 
-    manage->New.Grp.image = Boss5Image;
+    manage->New.Grp.image = BossImage[4];
     return NewObj(MEnemy,BossAct5,BossHit1,DrawImage);
 }
 
@@ -1068,7 +1254,7 @@ int NewBoss6(void)
     manage->New.Data.Cnt[3] = 0; /* stealth */
     manage->New.Data.Cnt[4] = 0;  /* shot counter */
 
-    manage->New.Grp.image = Boss6Image;
+    manage->New.Grp.image = BossImage[5];
     return NewObj(MEnemy,BossAct6,BossHit1,DrawImage);
 }
 
@@ -1359,7 +1545,7 @@ int NewBoss8(void)
     manage->New.Data.Cnt[7] = 0; /* mode counter */
     manage->New.Data.Cnt[8] = 0; /* after-death counter */
 
-    manage->New.Grp.image = Boss7Image;
+    manage->New.Grp.image = BossImage[6];
     return NewObj(MEnemy,BossAct8,BossHit8,DrawImage);
 }
 
@@ -1859,8 +2045,9 @@ int mainLoop( void ) {
 	    oneUp = 1;
 	}
 
-        /* draw the window */
-        clear_window();
+        memset(globals->shared_buffer,0,FIELD_WIDTH*FIELD_HEIGHT*3);
+        XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FIELD_WIDTH, FIELD_HEIGHT);
+
 
 	/* pixmaps for objects */
 	for (obj=0,ocheck=0; (obj<manage->EnemyMax && ocheck<manage->EnemyNum); obj++)
@@ -1889,53 +2076,54 @@ int mainLoop( void ) {
 	if (oneUp != 0)
 	{
 	    if (oneUp%4 > 1)
-              draw_string(440, 620, "1UP", strlen("1UP"));
+              draw2_string(440, 620, "1UP");
 	    oneUp++;
 	    if (oneUp > 50)
 		oneUp = 0;
 	}
 
 	if (manage->player[0]->Data.kill==True && player->Ships==0)
-          draw_string(230, 300, "Game Over", strlen("Game Over"));
+          draw2_string(230, 300, "Game Over");
 
-	if (manage->Appear < 0)
-	{
+	if (manage->Appear < 0) {
 	    char Percent[32];
 	    char Bonus[32];
 	    char Perfect[32];
 
-	    if (manage->showShootDown != 0)
-	    {
+	    if ( manage->showShootDown != 0 ) {
               /* shoot down bonus message */
-              if (manage->BossTime >= 1)
-              {
+              if (manage->BossTime >= 1) {
 		sprintf(Percent,"shoot down %02d%%",player->Percent);
-                draw_string(210, 370, Percent, strlen(Percent));
+                draw2_string(210, 370, Percent);
 
 
 		sprintf(Bonus,"Bonus %d pts", shoot_down_bonus(player->Percent, manage->Loop, manage->Stage));
-                draw_string(260 + manage->Appear*3 , 400,
-                            Bonus, strlen(Bonus));
+                draw2_string(260 + manage->Appear*3 , 400, Bonus );
 
 		if (player->Percent >= 100)
 		{
 		    sprintf(Perfect,"Perfect!!");
-                    draw_string(170 - manage->Appear*3 , 420,
-                                Perfect, strlen(Perfect));
+                    draw2_string(170 - manage->Appear*3 , 420, Perfect);
 		}
-              }
-              else
-              {
+              } else {
                 snprintf(Percent, 32, "the boss escaped");
-                draw_string(200 ,370 ,Percent, strlen(Percent));
+                draw2_string(200 ,370, Percent );
               }
-              
 	    }
-            draw_string(230, 320, StageName[manage->Stage-1],
-                        strlen(StageName[manage->Stage-1]));
+            draw2_string( 230, 320, StageName[manage->Stage-1] );
 	}
 
-        redraw_window();
+      XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FIELD_WIDTH,FIELD_HEIGHT,0,0);
+      XFlush(dpy);
+      XSync(dpy,False);
+
+
+      PyObject* ans =  PyObject_CallObject( globals->process_function, globals->process_args );
+      if (ans == NULL){
+        PyErr_Print();
+        return 1;
+      }
+
     }
 
     /* ending */
@@ -1954,9 +2142,9 @@ static void DrawInfo(void) {
     sprintf(Stage,"Stage %2d",manage->Stage);
     sprintf(Ships,"Ships %3d",player->Ships);
 
-    draw_string(10, 20, Score, strlen(Score));
-    draw_string(430, 20, Stage, strlen(Stage));
-    draw_string(430, 640, Ships, strlen(Ships));
+    draw2_string(  10,  20, Score );
+    draw2_string( 430,  20, Stage );
+    draw2_string( 430, 640, Ships );
     for (i = 0; i<manage->EnemyMax; i++)
       if (manage->enemy[i]->Data.used == True)
         if ((manage->enemy[i]->Hit == EnemyHit1)
@@ -1964,17 +2152,14 @@ static void DrawInfo(void) {
             ||(manage->enemy[i]->Hit == LargeDamageHit)
             ||(manage->enemy[i]->Hit == BossHit1)
             ||(manage->enemy[i]->Hit == BossHit8))
-          if (manage->enemy[i]->Data.showDamegeTime >0)
-          {
-            snprintf(EnemyHP, 5, "%d",manage->enemy[i]->Data.HP);
-            draw_string(manage->enemy[i]->Data.X, manage->enemy[i]->Data.Y,
-                        EnemyHP, strlen(EnemyHP));
+          if (manage->enemy[i]->Data.showDamegeTime >0){
+            snprintf( EnemyHP, 5, "%d",manage->enemy[i]->Data.HP );
+            draw2_string( manage->enemy[i]->Data.X, manage->enemy[i]->Data.Y, EnemyHP );
             (manage->enemy[i]->Data.showDamegeTime)--;
           }
-    if (manage->BossApp == True)
-    {
+    if (manage->BossApp == True){
       snprintf(BossTime, 16, "Time %4d",manage->BossTime);
-      draw_string(430, 40, BossTime, strlen(BossTime));
+      draw2_string( 430, 40, BossTime);
     }
 }
 
@@ -2079,6 +2264,8 @@ static void collision_detection(void)
     }
   }
 }
+
+
 
 static int shoot_down_bonus(int percent, int loop, int stage)
 {
@@ -3696,104 +3883,12 @@ DelAtt EnemyAct10(ObjData *my) {
 }
 
 
-Image* Image::ReadFileToImage( const char *filename ) {
-    Image* image = new Image();
-
-    XpmAttributes att;
-    att.valuemask = XpmColormap;
-    att.x_hotspot = 0U;
-    att.y_hotspot = 0U;
-    att.depth     = 8U;
-    att.colormap  = cmap;
-
-    int status = XpmReadFileToPixmap(dpy, WorkPixmap, (char *) filename, &(image->pixmap), &(image->mask), &att);
-    if (status != XpmSuccess) {
-	fprintf(stderr, " [file error] can not read %s\n", filename);
-	fflush(stderr);
-	exit(1);
-    }
-    image->width  = att.width;
-    image->height = att.height;
-
-    if ((image->mask) != None)
-	image->maskgc = XCreateGC(dpy,image->mask,0,0);
-    else
-	fprintf(stderr, "[pixmap error] clip_mask is None!\n");
-
-    XpmFreeAttributes(&att);
-
-    return image;
-}
 
 
-Image** Image::SplitImage(int nsplit){
-  Image* img = this;
-  int i;
-    GC  gc8, gc1;
 
-    int split_width  = img->width;
-    int split_height = (img->height) / nsplit;
 
-    gc8 = XCreateGC( dpy, img->pixmap, 0L, NULL );
-    gc1 = XCreateGC( dpy, img->mask,   0L, NULL );
 
-    XSetGraphicsExposures(dpy, gc8, False);
-    XSetGraphicsExposures(dpy, gc1, False);
 
-    Image** images = ( Image** )malloc(sizeof(Image*)*nsplit);
-
-    for (i=0; i<nsplit; i++) {  images[i] = new Image(); }
-
-    for (i=0; i<nsplit; i++) {
-	int x, y;
-
-	x = 0;
-	y = split_height * i;
-
-	images[i]->pixmap = XCreatePixmap(dpy,RootWindow(dpy,0),split_width,split_height,DefaultDepth(dpy,0));
-	XCopyArea(dpy,img->pixmap,images[i]->pixmap,gc8,x,y,split_width,split_height,0,0);
-
-	images[i]->mask = XCreatePixmap(dpy,RootWindow(dpy,0),split_width,split_height,1);
-	XCopyArea(dpy,img->mask,images[i]->mask,gc1,x,y,split_width,split_height,0,0);
-
-	images[i]->maskgc = XCreateGC(dpy,WorkPixmap,0,0);
-	XSetClipMask(dpy,images[i]->maskgc,images[i]->mask);
-
-	images[i]->width  = split_width;
-	images[i]->height = split_height;
-    }
-
-    XFreeGC(dpy,gc8);
-    XFreeGC(dpy,gc1);
-    XFlush(dpy);
-    return images;
-}
-
-void PutImage(Image *img, int x, int y) {
-  XSetClipOrigin(dpy,img->maskgc,x,y);
-  XCopyArea(dpy,img->pixmap,WorkPixmap,img->maskgc,0,0,img->width,img->height,x,y);
-}
-
-void FreeImage(Image *img) {
-  XFreePixmap(dpy, img->pixmap);
-  XFreePixmap(dpy, img->mask);
-  XFreeGC(dpy, img->maskgc);
-  free(img);
-  return;
-}
-
-void FreeImages(Image **imgs, int nimg) {
-  while (nimg) { FreeImage( imgs[ --nimg ] ); }
-  free( imgs );
-  return;
-}
-
-Image **ImageInit(const char *filename, int split) {
-  Image* Digit = Image::ReadFileToImage( filename );
-  Image** Digits = Digit->SplitImage(split);
-  FreeImage(Digit);
-  return Digits;
-}
 
 
 /* action */
@@ -3856,7 +3951,7 @@ DelAtt LargeDamageHit(ObjData *my, ObjData *your) {
 
 void NullReal(ObjData *my, GrpData *grp){ return; }
 void DrawRec(ObjData *my, GrpData *grp) { XDrawRectangle(dpy,WorkPixmap,FillGC,my->X-my->HarfW,my->Y-my->HarfH,my->Width,my->Height); }
-void DrawImage(ObjData *my, GrpData *grp) { PutImage( grp->image[my->image],my->X - grp->HarfW, my->Y - grp->HarfH); }
+void DrawImage(ObjData *my, GrpData *grp) {  grp->image[my->image]->drawImage( my->X - grp->HarfW, my->Y - grp->HarfH ); }
 
 int integerrng() { return lrand48(); }
 
@@ -4020,8 +4115,8 @@ int graphic_init( void ) {
   XSelectInput(dpy, win, ExposureMask|EnterWindowMask|KeyPressMask|KeyReleaseMask);
 
   WorkPixmap = XCreatePixmap(dpy, win, FIELD_WIDTH, FIELD_HEIGHT, DefaultDepth(dpy, 0));
-  FontGC     = XCreateGC(dpy,root,0,0);
-  XSetGraphicsExposures(dpy,FontGC,False);
+  globals->FontGC     = XCreateGC(dpy,root,0,0);
+  XSetGraphicsExposures( dpy, globals->FontGC, False );
 
   BackGC       = XCreateGC(dpy,WorkPixmap,0,0);
   XSetGraphicsExposures(dpy,BackGC,False);
@@ -4032,89 +4127,47 @@ int graphic_init( void ) {
   XSetForeground(dpy,FillGC,white.pixel);
 
 
-  PlayerImage = ImageInit( "Player.xpm",6);
-  PShot1Image  = ImageInit( "PlayerShot1.xpm",2);
-  PShot2Image  = ImageInit( "PlayerShot2.xpm",2);
-  PShot3Image  = ImageInit( "PlayerShot3.xpm",3);
+  PlayerImage = Image( "Player.xpm").SplitImage(6);
+  PShot1Image  = Image( "PlayerShot1.xpm").SplitImage(2);
+  PShot2Image  = Image( "PlayerShot2.xpm").SplitImage(2);
+  PShot3Image  = Image( "PlayerShot3.xpm").SplitImage(3);
 
-  EShotImage  = ImageInit( "EnemyShot.xpm",4);
-  ELaserImage  = ImageInit( "EnemyLaser.xpm",1);
-  EMissileImage  = ImageInit( "EnemyMiss.xpm",8);
-  EBoundImage = ImageInit( "EnemyBound.xpm",8);
-  ERingImage = ImageInit( "EnemyRing.xpm",4);
+  EShotImage  = Image( "EnemyShot.xpm").SplitImage(4);
+  ELaserImage  = Image( "EnemyLaser.xpm").SplitImage(1);
+  EMissileImage  = Image( "EnemyMiss.xpm").SplitImage(8);
+  EBoundImage = Image( "EnemyBound.xpm").SplitImage(8);
+  ERingImage = Image( "EnemyRing.xpm").SplitImage(4);
 
-  BombImage   = ImageInit( "ExpSmall.xpm",5);
-  LargeBombImage= ImageInit( "ExpLarge.xpm",5);
+  BombImage   = Image( "ExpSmall.xpm").SplitImage(5);
+  LargeBombImage= Image( "ExpLarge.xpm").SplitImage(5);
 
-  EnemyImage[0] = ImageInit( "Enemy1.xpm",8);
-  EnemyImage[1] = ImageInit( "Enemy2.xpm",8);
-  EnemyImage[2] = ImageInit( "Enemy3.xpm",8);
-  EnemyImage[3] = ImageInit( "Enemy4.xpm",8);
-  EnemyImage[4] = ImageInit( "Enemy5.xpm",4);
-  EnemyImage[5] = ImageInit( "Enemy6.xpm",6);
-  EnemyImage[6] = ImageInit( "Enemy7.xpm",1);
+  EnemyImage[0] = Image( "Enemy1.xpm").SplitImage(8);
+  EnemyImage[1] = Image( "Enemy2.xpm").SplitImage(8);
+  EnemyImage[2] = Image( "Enemy3.xpm").SplitImage(8);
+  EnemyImage[3] = Image( "Enemy4.xpm").SplitImage(8);
+  EnemyImage[4] = Image( "Enemy5.xpm").SplitImage(4);
+  EnemyImage[5] = Image( "Enemy6.xpm").SplitImage(6);
+  EnemyImage[6] = Image( "Enemy7.xpm").SplitImage(1);
 
-  Boss1Image = ImageInit( "Boss1.xpm",1);
-  Boss2Image = ImageInit( "Boss2.xpm",1);
-  Boss3Image = ImageInit( "Boss3.xpm",1);
-  Boss4Image = ImageInit( "Boss4.xpm",1);
-  Boss5Image = ImageInit( "Boss5.xpm",1);
-  Boss6Image = ImageInit( "Boss6.xpm",2);
-  Boss7Image = ImageInit( "Boss7.xpm",1);
+  BossImage[0] = Image( "Boss1.xpm").SplitImage(1);
+  BossImage[1] = Image( "Boss2.xpm").SplitImage(1);
+  BossImage[2] = Image( "Boss3.xpm").SplitImage(1);
+  BossImage[3] = Image( "Boss4.xpm").SplitImage(1);
+  BossImage[4] = Image( "Boss5.xpm").SplitImage(1);
+  BossImage[5] = Image( "Boss6.xpm").SplitImage(2);
+  BossImage[6] = Image( "Boss7.xpm").SplitImage(1);
 
-  ItemImage = ImageInit( "Item.xpm",4);
-    
-  /* initialize font */
-  /* explanation of font images
-   *  14 * 7
-   *  0@P`p 14
-   * !1AQaq 28
-   * "2BRbr 42
-   * #3CScs 56
-   * $4DTdt 70
-   * %5EUeu 84
-   * &6FVfv 98
-   * '7GWgw 112
-   * (8HXhx 126
-   * )9IYiy 140
-   * *:JZjz 154
-   * +;K[k{ 168
-   * ,<L\l| 182
-   * -=M]m} 196
-   * .>N^n~ 210
-   * /?O_o  224
-   */
-  Font1Image = ImageInit( "font1.xpm" , 16);
-  Font2Image = ImageInit( "font2.xpm" , 16);
-  Font3Image = ImageInit( "font3.xpm" , 16);
-  Font4Image = ImageInit( "font4.xpm" , 16);
-  Font5Image = ImageInit( "font5.xpm" , 16);
-  Font6Image = ImageInit( "font6.xpm" , 16);
+  ItemImage = Image( "Item.xpm").SplitImage(4);
+  Font1Image = Image( "font1.xpm" ).SplitImage(16);
+  Font2Image = Image( "font2.xpm" ).SplitImage(16);
+  Font3Image = Image( "font3.xpm" ).SplitImage(16);
+  Font4Image = Image( "font4.xpm" ).SplitImage(16);
+  Font5Image = Image( "font5.xpm" ).SplitImage(16);
+  Font6Image = Image( "font6.xpm" ).SplitImage(16);
 
   return 0;
 }
 
-int clear_window(void) {
-  XFillRectangle(dpy, WorkPixmap, BackGC, 0, 0, FIELD_WIDTH, FIELD_HEIGHT);
-  return 0;
-}
-
-
-int redraw_window(void) {
-  XCopyArea(dpy,WorkPixmap,win,BackGC,0,0,FIELD_WIDTH,FIELD_HEIGHT,0,0);
-  XFlush(dpy);
-  XSync(dpy,False);
-
-  XImage* image = XGetImage(dpy,WorkPixmap,0,0,FIELD_WIDTH,FIELD_HEIGHT,AllPlanes,ZPixmap);
-  for(int row=0;row<FIELD_HEIGHT;row++){
-    for(int col=0;col<FIELD_WIDTH;col++){
-      printf( "%06lx", XGetPixel(image,col,row) );
-    }
-  }
-  printf("\n");
-
-  return 0;
-}
 
 int graphic_finish(void) {
   FreeImages(PlayerImage,6);
@@ -4139,13 +4192,13 @@ int graphic_finish(void) {
   FreeImages(EnemyImage[5],6);
   FreeImages(EnemyImage[6],1);
 
-  FreeImages(Boss1Image,1);
-  FreeImages(Boss2Image,1);
-  FreeImages(Boss3Image,1);
-  FreeImages(Boss4Image,1);
-  FreeImages(Boss5Image,1);
-  FreeImages(Boss6Image,2);
-  FreeImages(Boss7Image,1);
+  FreeImages(BossImage[0],1);
+  FreeImages(BossImage[1],1);
+  FreeImages(BossImage[2],1);
+  FreeImages(BossImage[3],1);
+  FreeImages(BossImage[4],1);
+  FreeImages(BossImage[5],2);
+  FreeImages(BossImage[6],1);
 
   FreeImages(ItemImage,4);
 
@@ -4156,22 +4209,23 @@ int graphic_finish(void) {
   FreeImages(Font5Image, 16);
   FreeImages(Font6Image, 16);
 
-  XFreeGC(dpy, FontGC);
-  XFreeGC(dpy, BackGC);
-  XFreeGC(dpy, FillGC);
+  XFreeGC( dpy, globals->FontGC);
+  XFreeGC( dpy, BackGC);
+  XFreeGC( dpy, FillGC);
   XAutoRepeatOn(dpy);
   XFlush(dpy);
   XCloseDisplay(dpy);
+  delete globals;
   return 0;
 }
 
-int draw_string(int x, int y, const char *string, int length) {
+void draw2_string(int x, int y, const char *string ) {
+  int length = strlen(string);
   y -= 7;
   for (int i = 0; (i < length) && (string[i] != '\0'); i++) {
     draw_char(x, y, string[i]);
     x += 7;
   }
-  return 0;
 }
 
 int draw_char(int x, int y, int c) {
@@ -4567,8 +4621,8 @@ CharManage *NewManage(int playerMax, int enemyMax) {
     New->EnemyShot.Data.image = 0;
     New->EnemyShot.Data.Cnt[4] = 0; /* image counter */
     New->EnemyShot.Grp.image = EShotImage;
-    New->EnemyShot.Grp.Width = New->EnemyShot.Grp.image[0]->width;
-    New->EnemyShot.Grp.Height = New->EnemyShot.Grp.image[0]->height;
+    New->EnemyShot.Grp.Width = New->EnemyShot.Grp.image[0]->getWidth();
+    New->EnemyShot.Grp.Height = New->EnemyShot.Grp.image[0]->getHeight();
     New->EnemyShot.Grp.HarfW = New->EnemyShot.Grp.Width/2;
     New->EnemyShot.Grp.HarfH = New->EnemyShot.Grp.Height/2;
 
@@ -4584,8 +4638,8 @@ CharManage *NewManage(int playerMax, int enemyMax) {
     New->Bomb.Data.image = 0;
     New->Bomb.Data.Cnt[0] = 0;
     New->Bomb.Grp.image = BombImage;
-    New->Bomb.Grp.Width = New->Bomb.Grp.image[0]->width;
-    New->Bomb.Grp.Height = New->Bomb.Grp.image[0]->height;
+    New->Bomb.Grp.Width = New->Bomb.Grp.image[0]->getWidth();
+    New->Bomb.Grp.Height = New->Bomb.Grp.image[0]->getHeight();
     New->Bomb.Grp.HarfW = New->Bomb.Grp.Width/2;
     New->Bomb.Grp.HarfH = New->Bomb.Grp.Height/2;
 
@@ -4601,8 +4655,8 @@ CharManage *NewManage(int playerMax, int enemyMax) {
     New->LargeBomb.Data.image = 0;
     New->LargeBomb.Data.Cnt[0] = 0;
     New->LargeBomb.Grp.image = LargeBombImage;
-    New->LargeBomb.Grp.Width = New->LargeBomb.Grp.image[0]->width;
-    New->LargeBomb.Grp.Height = New->LargeBomb.Grp.image[0]->height;
+    New->LargeBomb.Grp.Width = New->LargeBomb.Grp.image[0]->getWidth();
+    New->LargeBomb.Grp.Height = New->LargeBomb.Grp.image[0]->getHeight();
     New->LargeBomb.Grp.HarfW = New->LargeBomb.Grp.Width/2;
     New->LargeBomb.Grp.HarfH = New->LargeBomb.Grp.Height/2;
 
@@ -4715,8 +4769,8 @@ int NewObj(int mask,
 		manage->player[i]->Data.HarfH = manage->player[i]->Data.Height / 2;
 
 		manage->player[i]->Data.image = 0;
-		manage->player[i]->Grp.Width = manage->player[i]->Grp.image[0]->width;
-		manage->player[i]->Grp.Height = manage->player[i]->Grp.image[0]->height;
+		manage->player[i]->Grp.Width  = manage->player[i]->Grp.image[0]->getWidth();
+		manage->player[i]->Grp.Height = manage->player[i]->Grp.image[0]->getHeight();
 		manage->player[i]->Grp.HarfW = manage->player[i]->Grp.Width /2;
 		manage->player[i]->Grp.HarfH = manage->player[i]->Grp.Height /2;
                 manage->player[i]->Data.notShootingTime = 5;
@@ -4740,22 +4794,22 @@ int NewObj(int mask,
 	{
 	    if (manage->enemy[i]->Data.used == False)
 	    {
-		manage->enemy[i]->Data    = manage->New.Data;
-		manage->enemy[i]->Grp     = manage->New.Grp;
-		manage->enemy[i]->Action  = action;
-		manage->enemy[i]->Realize = realize;
-		manage->enemy[i]->Hit     = hit;
-		manage->enemy[i]->Data.used = True;
-		manage->enemy[i]->Data.kill = False;
-		manage->enemy[i]->Data.HarfW = manage->enemy[i]->Data.Width / 2;
-		manage->enemy[i]->Data.HarfH = manage->enemy[i]->Data.Height / 2;
+		manage->enemy[i]->Data           = manage->New.Data;
+		manage->enemy[i]->Grp            = manage->New.Grp;
+		manage->enemy[i]->Action         = action;
+		manage->enemy[i]->Realize        = realize;
+		manage->enemy[i]->Hit            = hit;
+		manage->enemy[i]->Data.used      = True;
+		manage->enemy[i]->Data.kill      = False;
+		manage->enemy[i]->Data.HarfW     = manage->enemy[i]->Data.Width / 2;
+		manage->enemy[i]->Data.HarfH     = manage->enemy[i]->Data.Height / 2;
 		manage->enemy[i]->Data.startTime = manage->Level;
-		manage->enemy[i]->Data.shotTime = (ShotTiming + manage->Level) / 2;
-		manage->enemy[i]->Data.image = 0;
-		manage->enemy[i]->Grp.Width = manage->enemy[i]->Grp.image[0]->width;
-		manage->enemy[i]->Grp.Height = manage->enemy[i]->Grp.image[0]->height;
-		manage->enemy[i]->Grp.HarfW = manage->enemy[i]->Grp.Width / 2;
-		manage->enemy[i]->Grp.HarfH = manage->enemy[i]->Grp.Height / 2;
+		manage->enemy[i]->Data.shotTime  = (ShotTiming + manage->Level) / 2;
+		manage->enemy[i]->Data.image     = 0;
+		manage->enemy[i]->Grp.Width      = manage->enemy[i]->Grp.image[0]->getWidth();
+		manage->enemy[i]->Grp.Height     = manage->enemy[i]->Grp.image[0]->getHeight();
+		manage->enemy[i]->Grp.HarfW      = manage->enemy[i]->Grp.Width / 2;
+		manage->enemy[i]->Grp.HarfH      = manage->enemy[i]->Grp.Height / 2;
 
 		manage->enemy[i]->Data.showDamegeTime = 0;
 

@@ -4,5 +4,5 @@ set -e
 
 
 export WARNINGS='-Wall -Wshadow -Wpointer-arith -Wcast-align -Wwrite-strings  -Wmissing-declarations'
-g++ -I. $WARNINGS -Winline -pedantic -Wno-long-long -g -O2  -o xsoldier main.c  -lSM -lICE -lX11 -lXpm
-./xsoldier | ./pysoldier
+g++ -I. $WARNINGS -Winline -pedantic -Wno-long-long -g -O2  -o xsoldier main.c  $(python3.10-config --cflags --ldflags --embed) -lSM -lICE -lX11 -lXpm
+./xsoldier 
